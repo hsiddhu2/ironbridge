@@ -36,10 +36,12 @@ COLUMNS = (
     "warnings, scenario, execution_arn, path_match, redrive_count, steps_rerun, duration_ms, "
     "carddemo_commit, ironbridge_version, region"
 ).split(", ")
+# Plan denominator, docs/measurement-plan.md. GDG relative refs corrected 15 to 17 (total 509 to
+# 511) on 2026-11-01: grep and parser both find 15 (+1) and 2 (0).
 RESEARCH = {
     "EXEC steps": 101,
     "Step COND=": 9,
-    "GDG relative refs": 15,
+    "GDG relative refs": 17,
     "GDG base definitions": 11,
     "EXEC PROC calls": 3,
     "JCLLIB": 3,
@@ -138,7 +140,7 @@ def phase_coverage() -> list[dict]:
     add("Control-M TOTAL", rep["controlm"])
     print(f"\nbyte-identical on rerun: {same}")
     print(f"TODO grep {grep} vs coverage.json {rep['todo_markers_total']}")
-    print("parser vs research denominator:")
+    print("parser vs plan denominator:")
     for name, r in rep["jcl"]["rows"].items():
         delta = r["total"] - RESEARCH[name]
         print(f"  {name:<22}{r['total']:>5} vs {RESEARCH[name]:>4}  delta {delta:+d}")

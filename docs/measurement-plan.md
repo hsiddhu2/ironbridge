@@ -9,13 +9,13 @@ Denominator from research.md, CardDemo commit 59cc6c2.
 | --- | --- |
 | EXEC steps | 101 |
 | Step COND= | 9 |
-| GDG relative refs | 15 |
+| GDG relative refs | 17 (corrected 2026-11-01 from 15: grep and parser both find 15 (+1) and 2 (0)) |
 | GDG base definitions | 11 |
 | EXEC PROC calls | 3 |
 | JCLLIB | 3 |
 | DD statements | 328 |
 | Symbolic lines | 39 |
-| **Total** | **509** |
+| **Total** | **511** |
 
 RESTART= is one comment and IDCAMS IF is program logic. Both are reported, not counted. Publish the per-row table and the hard subset (COND, GDG refs, PROC) so DD volume cannot hide gaps. Control-M coverage is a separate line.
 
