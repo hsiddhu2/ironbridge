@@ -1,0 +1,178 @@
+{
+  "Comment": "Hand-written baseline for CardDemo TRANREPT.jcl. Unload, filter and report processed transactions.",
+  "QueryLanguage": "JSONata",
+  "StartAt": "JOB",
+  "States": {
+    "JOB": {
+      "Type": "Pass",
+      "Comment": "TRANREPT JOB CLASS=A MSGCLASS=0 NOTIFY=&SYSUID. JCLLIB ORDER=AWS.M2.CARDDEMO.PROC resolves REPROC. Two steps share the name STEP05R. The PROC step is named STEP05R.PRC001.",
+      "Assign": {
+        "sim": "{% $exists($states.input.simulate) ? $states.input.simulate : {} %}",
+        "gdg": "{% $merge([{'AWS.M2.CARDDEMO.TRANSACT.BKUP': 0, 'AWS.M2.CARDDEMO.TRANSACT.DALY': 0, 'AWS.M2.CARDDEMO.TRANREPT': 0}, $exists($states.input.gdg) ? $states.input.gdg : {}]) %}",
+        "gdgnew": {},
+        "rc": {},
+        "notify": "{% $states.context.Execution.RoleArn %}"
+      },
+      "Next": "STEP05R.PRC001"
+    },
+    "STEP05R.PRC001": {
+      "Type": "Task",
+      "Comment": "EXEC PROC=REPROC,CNTLLIB=AWS.M2.CARDDEMO.CNTL. PRC001 runs IDCAMS REPRO to unload the KSDS into a new generation.",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "${StubFunctionArn}",
+        "Payload": {
+          "job": "TRANREPT",
+          "step": "STEP05R.PRC001",
+          "pgm": "IDCAMS",
+          "parm": "",
+          "dd": {
+            "SYSPRINT": {"SYSOUT": "*"},
+            "FILEIN": {"DISP": "SHR", "DSN": "AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS"},
+            "FILEOUT": {
+              "DISP": "(NEW,CATLG,DELETE)",
+              "DSN": "{% 'gdg/AWS.M2.CARDDEMO.TRANSACT.BKUP/G' & $formatInteger($lookup($gdg, 'AWS.M2.CARDDEMO.TRANSACT.BKUP') + 1, '0000') & 'V00/' %}",
+              "UNIT": "SYSDA",
+              "DCB": "(LRECL=350,RECFM=FB,BLKSIZE=0)",
+              "SPACE": "(CYL,(1,1),RLSE)"
+            },
+            "SYSIN": {"DISP": "SHR", "DSN": "AWS.M2.CARDDEMO.CNTL(REPROCT)"}
+          },
+          "simulate": "{% $sim %}"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Assign": {
+        "rc": "{% $merge([$rc, {'STEP05R.PRC001': $states.result.Payload.rc}]) %}",
+        "gdgnew": "{% $merge([$gdgnew, {'AWS.M2.CARDDEMO.TRANSACT.BKUP': $lookup($gdg, 'AWS.M2.CARDDEMO.TRANSACT.BKUP') + 1}]) %}"
+      },
+      "Next": "STEP05R"
+    },
+    "STEP05R": {
+      "Type": "Task",
+      "Comment": "SORT filters by processing date and sorts by card number. Reads the generation PRC001 just wrote.",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "${StubFunctionArn}",
+        "Payload": {
+          "job": "TRANREPT",
+          "step": "STEP05R",
+          "pgm": "SORT",
+          "parm": "",
+          "dd": {
+            "SORTIN": {
+              "DISP": "SHR",
+              "DSN": "{% 'gdg/AWS.M2.CARDDEMO.TRANSACT.BKUP/G' & $formatInteger($lookup($gdg, 'AWS.M2.CARDDEMO.TRANSACT.BKUP') + 1, '0000') & 'V00/' %}"
+            },
+            "SYMNAMES": {
+              "instream": [
+                "TRAN-CARD-NUM,263,16,ZD",
+                "TRAN-PROC-DT,305,10,CH",
+                "PARM-START-DATE,C'2022-01-01'                                      //Date",
+                "PARM-END-DATE,C'2022-07-06'                                        //Date"
+              ]
+            },
+            "SYSIN": {
+              "instream": [
+                " SORT FIELDS=(TRAN-CARD-NUM,A)",
+                " INCLUDE COND=(TRAN-PROC-DT,GE,PARM-START-DATE,AND,",
+                "         TRAN-PROC-DT,LE,PARM-END-DATE)"
+              ]
+            },
+            "SYSOUT": {"SYSOUT": "*"},
+            "SORTOUT": {
+              "DISP": "(NEW,CATLG,DELETE)",
+              "UNIT": "SYSDA",
+              "DCB": "(*.SORTIN)",
+              "SPACE": "(CYL,(1,1),RLSE)",
+              "DSN": "{% 'gdg/AWS.M2.CARDDEMO.TRANSACT.DALY/G' & $formatInteger($lookup($gdg, 'AWS.M2.CARDDEMO.TRANSACT.DALY') + 1, '0000') & 'V00/' %}"
+            }
+          },
+          "simulate": "{% $sim %}"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Assign": {
+        "rc": "{% $merge([$rc, {'STEP05R': $states.result.Payload.rc}]) %}",
+        "gdgnew": "{% $merge([$gdgnew, {'AWS.M2.CARDDEMO.TRANSACT.DALY': $lookup($gdg, 'AWS.M2.CARDDEMO.TRANSACT.DALY') + 1}]) %}"
+      },
+      "Next": "STEP10R"
+    },
+    "STEP10R": {
+      "Type": "Task",
+      "Comment": "CBTRN03C prints the formatted transaction report.",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "${StubFunctionArn}",
+        "Payload": {
+          "job": "TRANREPT",
+          "step": "STEP10R",
+          "pgm": "CBTRN03C",
+          "parm": "",
+          "dd": {
+            "STEPLIB": {"DISP": "SHR", "DSN": "AWS.M2.CARDDEMO.LOADLIB"},
+            "SYSOUT": {"SYSOUT": "*"},
+            "SYSPRINT": {"SYSOUT": "*"},
+            "TRANFILE": {
+              "DISP": "SHR",
+              "DSN": "{% 'gdg/AWS.M2.CARDDEMO.TRANSACT.DALY/G' & $formatInteger($lookup($gdg, 'AWS.M2.CARDDEMO.TRANSACT.DALY') + 1, '0000') & 'V00/' %}"
+            },
+            "CARDXREF": {"DISP": "SHR", "DSN": "AWS.M2.CARDDEMO.CARDXREF.VSAM.KSDS"},
+            "TRANTYPE": {"DISP": "SHR", "DSN": "AWS.M2.CARDDEMO.TRANTYPE.VSAM.KSDS"},
+            "TRANCATG": {"DISP": "SHR", "DSN": "AWS.M2.CARDDEMO.TRANCATG.VSAM.KSDS"},
+            "DATEPARM": {"DISP": "SHR", "DSN": "AWS.M2.CARDDEMO.DATEPARM"},
+            "TRANREPT": {
+              "DISP": "(NEW,CATLG,DELETE)",
+              "UNIT": "SYSDA",
+              "DCB": "(LRECL=133,RECFM=FB,BLKSIZE=0)",
+              "SPACE": "(CYL,(1,1),RLSE)",
+              "DSN": "{% 'gdg/AWS.M2.CARDDEMO.TRANREPT/G' & $formatInteger($lookup($gdg, 'AWS.M2.CARDDEMO.TRANREPT') + 1, '0000') & 'V00/' %}"
+            }
+          },
+          "simulate": "{% $sim %}"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Assign": {
+        "rc": "{% $merge([$rc, {'STEP10R': $states.result.Payload.rc}]) %}",
+        "gdgnew": "{% $merge([$gdgnew, {'AWS.M2.CARDDEMO.TRANREPT': $lookup($gdg, 'AWS.M2.CARDDEMO.TRANREPT') + 1}]) %}"
+      },
+      "Next": "EOJ"
+    },
+    "EOJ": {
+      "Type": "Pass",
+      "Comment": "End of job. Returns step RCs, MAXCC and the advanced GDG map.",
+      "Output": {
+        "job": "TRANREPT",
+        "rc": "{% $rc %}",
+        "maxcc": "{% $count([$rc.*]) > 0 ? $max([$rc.*]) : 0 %}",
+        "gdg": "{% $merge([$gdg, $gdgnew]) %}"
+      },
+      "End": true
+    }
+  }
+}

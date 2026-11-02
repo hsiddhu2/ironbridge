@@ -1,0 +1,172 @@
+{
+  "Comment": "Hand-written baseline for CardDemo TRANBKP.jcl. REPRO and Delete Transaction Master.",
+  "QueryLanguage": "JSONata",
+  "StartAt": "JOB",
+  "States": {
+    "JOB": {
+      "Type": "Pass",
+      "Comment": "TRANBKP JOB CLASS=A MSGCLASS=0 NOTIFY=&SYSUID. JCLLIB ORDER=AWS.M2.CARDDEMO.PROC resolves REPROC.",
+      "Assign": {
+        "sim": "{% $exists($states.input.simulate) ? $states.input.simulate : {} %}",
+        "gdg": "{% $merge([{'AWS.M2.CARDDEMO.TRANSACT.BKUP': 0}, $exists($states.input.gdg) ? $states.input.gdg : {}]) %}",
+        "gdgnew": {},
+        "rc": {},
+        "notify": "{% $states.context.Execution.RoleArn %}"
+      },
+      "Next": "STEP05R.PRC001"
+    },
+    "STEP05R.PRC001": {
+      "Type": "Task",
+      "Comment": "EXEC PROC=REPROC,CNTLLIB=AWS.M2.CARDDEMO.CNTL. PRC001 runs IDCAMS REPRO.",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "${StubFunctionArn}",
+        "Payload": {
+          "job": "TRANBKP",
+          "step": "STEP05R.PRC001",
+          "pgm": "IDCAMS",
+          "parm": "",
+          "dd": {
+            "SYSPRINT": {"SYSOUT": "*"},
+            "FILEIN": {"DISP": "SHR", "DSN": "AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS"},
+            "FILEOUT": {
+              "DISP": "(NEW,CATLG,DELETE)",
+              "DSN": "{% 'gdg/AWS.M2.CARDDEMO.TRANSACT.BKUP/G' & $formatInteger($lookup($gdg, 'AWS.M2.CARDDEMO.TRANSACT.BKUP') + 1, '0000') & 'V00/' %}",
+              "UNIT": "SYSDA",
+              "DCB": "(LRECL=350,RECFM=FB,BLKSIZE=0)",
+              "SPACE": "(CYL,(1,1),RLSE)"
+            },
+            "SYSIN": {"DISP": "SHR", "DSN": "AWS.M2.CARDDEMO.CNTL(REPROCT)"}
+          },
+          "simulate": "{% $sim %}"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Assign": {
+        "rc": "{% $merge([$rc, {'STEP05R.PRC001': $states.result.Payload.rc}]) %}",
+        "gdgnew": "{% $merge([$gdgnew, {'AWS.M2.CARDDEMO.TRANSACT.BKUP': $lookup($gdg, 'AWS.M2.CARDDEMO.TRANSACT.BKUP') + 1}]) %}"
+      },
+      "Next": "STEP05"
+    },
+    "STEP05": {
+      "Type": "Task",
+      "Comment": "Delete the transaction master KSDS and AIX if present. IDCAMS IF MAXCC is program logic.",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "${StubFunctionArn}",
+        "Payload": {
+          "job": "TRANBKP",
+          "step": "STEP05",
+          "pgm": "IDCAMS",
+          "parm": "",
+          "dd": {
+            "SYSPRINT": {"SYSOUT": "*"},
+            "SYSIN": {
+              "instream": [
+                "   DELETE AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS -",
+                "          CLUSTER",
+                "   IF MAXCC LE 08 THEN SET MAXCC = 0",
+                "   DELETE AWS.M2.CARDDEMO.TRANSACT.VSAM.AIX -",
+                "          ALTERNATEINDEX",
+                "   IF MAXCC LE 08 THEN SET MAXCC = 0"
+              ]
+            }
+          },
+          "simulate": "{% $sim %}"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Assign": {
+        "rc": "{% $merge([$rc, {'STEP05': $states.result.Payload.rc}]) %}"
+      },
+      "Next": "COND STEP10"
+    },
+    "COND STEP10": {
+      "Type": "Choice",
+      "Comment": "COND=(4,LT). Bypass STEP10 when 4 is less than the RC of any prior step.",
+      "Choices": [
+        {
+          "Condition": "{% $count([$rc.*][4 < $]) > 0 %}",
+          "Next": "EOJ"
+        }
+      ],
+      "Default": "STEP10"
+    },
+    "STEP10": {
+      "Type": "Task",
+      "Comment": "Define the transaction master KSDS.",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "${StubFunctionArn}",
+        "Payload": {
+          "job": "TRANBKP",
+          "step": "STEP10",
+          "pgm": "IDCAMS",
+          "parm": "",
+          "dd": {
+            "SYSPRINT": {"SYSOUT": "*"},
+            "SYSIN": {
+              "instream": [
+                "   DEFINE CLUSTER (NAME(AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS) -",
+                "          CYLINDERS(1 5) -",
+                "          VOLUMES(AWSHJ1 -",
+                "          ) -",
+                "          KEYS(16 0) -",
+                "          RECORDSIZE(350 350) -",
+                "          SHAREOPTIONS(2 3) -",
+                "          ERASE -",
+                "          INDEXED -",
+                "          ) -",
+                "          DATA (NAME(AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS.DATA) -",
+                "          ) -",
+                "          INDEX (NAME(AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS.INDEX) -",
+                "          )"
+              ]
+            }
+          },
+          "simulate": "{% $sim %}"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Assign": {
+        "rc": "{% $merge([$rc, {'STEP10': $states.result.Payload.rc}]) %}"
+      },
+      "Next": "EOJ"
+    },
+    "EOJ": {
+      "Type": "Pass",
+      "Comment": "End of job. Returns step RCs, MAXCC and the advanced GDG map.",
+      "Output": {
+        "job": "TRANBKP",
+        "rc": "{% $rc %}",
+        "maxcc": "{% $count([$rc.*]) > 0 ? $max([$rc.*]) : 0 %}",
+        "gdg": "{% $merge([$gdg, $gdgnew]) %}"
+      },
+      "End": true
+    }
+  }
+}
