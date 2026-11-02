@@ -1,0 +1,6 @@
+name: Feature
+description: Something to add or measure
+body:
+  - type: textarea
+    attributes:
+      label: What and why

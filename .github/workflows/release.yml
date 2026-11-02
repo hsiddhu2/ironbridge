@@ -1,0 +1,23 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Changelog
+        run: |
+          prev=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$prev" ]; then git log --pretty='- %s' "$prev"..HEAD > notes.md; else git log --pretty='- %s' > notes.md; fi
+      - uses: softprops/action-gh-release@v2
+        with:
+          body_path: notes.md

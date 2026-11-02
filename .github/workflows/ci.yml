@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install
+        run: |
+          uv sync --all-extras
+          npm i -g aws-cdk
+          cd infra && npm ci || true
+
+      - name: Lint
+        run: |
+          uv run ruff check src tests scripts infra
+          uv run ruff format --check src tests scripts infra
+
+      - name: Test
+        run: uv run pytest -q
+
+      - name: Synth
+        run: cd infra && uv run cdk synth --quiet
+        env:
+          CDK_DEFAULT_REGION: us-east-1
+
+      - name: Scan IaC
+        run: uv run checkov -d infra/cdk.out --framework cloudformation --quiet --compact --soft-fail-on LOW,MEDIUM
+
+      - name: Secrets scan
+        run: |
+          if grep -rEn 'AKI[A][0-9A-Z]{16}|aws_secret_access_ke[y]|-----BEGI[N]' --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=cdk.out . ; then
+            echo "Possible secret found"; exit 1; fi
+
+      - name: Upload template
+        uses: actions/upload-artifact@v4
+        with:
+          name: cdk-template
+          path: infra/cdk.out/*.template.json

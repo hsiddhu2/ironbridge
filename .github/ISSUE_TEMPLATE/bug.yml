@@ -1,0 +1,12 @@
+name: Bug
+description: Something does not work from the README
+body:
+  - type: textarea
+    attributes:
+      label: Step that failed
+  - type: textarea
+    attributes:
+      label: Output
+  - type: input
+    attributes:
+      label: Region and Python version

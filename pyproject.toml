@@ -1,0 +1,31 @@
+[project]
+name = "ironbridge"
+version = "0.1.0"
+description = "I turned CardDemo's 38 JCL jobs and its Control-M schedule into Step Functions. N% converted without a hand edit"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Harpreet S. Siddhu" }]
+dependencies = [
+  "boto3>=1.35",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "moto[all]>=5",
+  "ruff>=0.6",
+  "aws-cdk-lib>=2.160",
+  "constructs>=10",
+  "checkov>=3",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = ["S101"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
