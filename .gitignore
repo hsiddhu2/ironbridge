@@ -11,3 +11,5 @@ outputs.json
 .env
 *.log
 .DS_Store
+results.csv
+results-*.csv

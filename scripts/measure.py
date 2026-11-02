@@ -1,4 +1,4 @@
-"""Run the m4 measurement plan (docs/measurement-plan.md) and write results.csv.
+"""Run the m4 measurement plan (docs/measurement-plan.md) and append to results.csv.
 
 Phases:
   coverage  offline. Runs to-asl twice, checks byte-identical output and the TODO grep.
@@ -86,14 +86,18 @@ EXPECTED = {
 }
 
 
+# One label per `measure.py` invocation. Every row in this run starts with it, so appended
+# runs in results.csv can be told apart: run_id is <RUN>-<phase>-<nnn>.
+RUN = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+
+
 def now() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def row(phase: str, n: int, **kw) -> dict:
     base = {c: "" for c in COLUMNS}
-    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
-    base.update(run_id=f"{stamp}-{phase}-{n:03d}", utc_time=now(), phase=phase)
+    base.update(run_id=f"{RUN}-{phase}-{n:03d}", utc_time=now(), phase=phase)
     base.update(carddemo_commit=CARDDEMO_COMMIT, ironbridge_version=__version__, region=REGION)
     base.update({k: v for k, v in kw.items()})
     return base
@@ -340,15 +344,20 @@ def phase_run() -> list[dict]:
     return rows
 
 
-def write(rows: list[dict], phases: set[str], path: Path) -> None:
-    keep = []
+def write(rows: list[dict], path: Path) -> Path:
+    """Append to results.csv. A file with other columns is left alone and we write a new one."""
     if path.exists():
         with path.open() as f:
-            keep = [r for r in csv.DictReader(f) if r["phase"] not in phases]
-    with path.open("w", newline="") as f:
+            header = next(csv.reader(f), [])
+        if header != COLUMNS:
+            path = path.with_name(f"{path.stem}-{RUN}{path.suffix}")
+    new = not path.exists() or path.stat().st_size == 0
+    with path.open("a", newline="") as f:
         w = csv.DictWriter(f, fieldnames=COLUMNS)
-        w.writeheader()
-        w.writerows(keep + rows)
+        if new:
+            w.writeheader()
+        w.writerows(rows)
+    return path
 
 
 def summary(rows: list[dict]) -> None:
@@ -393,9 +402,9 @@ def main(argv: list[str] | None = None) -> int:
     rows = []
     for p in phases:
         rows += funcs[p]()
-    write(rows, set(phases), args.out)
+    out = write(rows, args.out)
     summary(rows)
-    print(f"\nwrote {args.out}")
+    print(f"\nappended {len(rows)} rows with run_id prefix {RUN} to {out}")
     return 0
 
 

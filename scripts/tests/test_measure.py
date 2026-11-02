@@ -106,3 +106,22 @@ def test_task_retry_before_redrive_is_not_a_rerun():
     client, stub = stub_history(events)
     with stub:
         assert measure.history_path(client, "x") == (["S1"], [], False)
+
+
+def test_write_appends_with_one_run_id_per_invocation(tmp_path, monkeypatch):
+    out = tmp_path / "results.csv"
+    monkeypatch.setattr(measure, "RUN", "R1")
+    measure.write([measure.row("diff", 1, job="A")], out)
+    monkeypatch.setattr(measure, "RUN", "R2")
+    measure.write([measure.row("diff", 1, job="A"), measure.row("diff", 2, job="B")], out)
+    lines = out.read_text().splitlines()
+    assert lines[0].split(",") == measure.COLUMNS and len(lines) == 4
+    assert [ln.split(",")[0] for ln in lines[1:]] == ["R1-diff-001", "R2-diff-001", "R2-diff-002"]
+
+
+def test_write_never_appends_to_a_file_with_other_columns(tmp_path, monkeypatch):
+    out = tmp_path / "results.csv"
+    out.write_text("a,b\n1,2\n")
+    monkeypatch.setattr(measure, "RUN", "R3")
+    written = measure.write([measure.row("diff", 1)], out)
+    assert written.name == "results-R3.csv" and out.read_text() == "a,b\n1,2\n"
