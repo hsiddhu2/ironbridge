@@ -1,6 +1,9 @@
 {
   "name": "ironbridge-infra",
   "private": true,
+  "engines": {
+    "node": "^22 || ^24"
+  },
   "devDependencies": {
     "aws-cdk": "2.1147.0"
   }
