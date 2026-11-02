@@ -8,3 +8,7 @@ trim_trailing_whitespace = true
 insert_final_newline = true
 [*.{yml,yaml,json,md}]
 indent_size = 2
+[ironbridge/jcl/tests/fixtures/**]
+trim_trailing_whitespace = false
+insert_final_newline = false
+end_of_line = unset

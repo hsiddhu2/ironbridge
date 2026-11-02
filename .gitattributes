@@ -1,0 +1,2 @@
+# CardDemo fixtures are kept byte-for-byte, including one CRLF member and trailing blanks.
+ironbridge/jcl/tests/fixtures/** -text
