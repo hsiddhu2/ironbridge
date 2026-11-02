@@ -6,7 +6,7 @@
 
 ## What this is
 
-`ironbridge jcl to-asl` turned CardDemo's 38 JCL jobs and its Control-M schedule into AWS Step Functions, and {{COVERAGE_PCT}}% of {{CONSTRUCT_TOTAL}} JCL constructs converted with no hand edit.
+`ironbridge jcl to-asl` turned CardDemo's 38 JCL jobs into AWS Step Functions. 497 of 511 JCL constructs (97.3%) came out with no TODO marker. Program bodies run on a return-code stub in v0.1.0.
 
 Companion repo for the article on AWS Builder Center: {{ARTICLE_URL}}
 
