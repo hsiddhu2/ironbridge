@@ -228,15 +228,42 @@ def phase_diff() -> list[dict]:
     return rows
 
 
-def history_path(sfn, arn: str) -> tuple[list[str], bool]:
-    path, throttled = [], False
+def entered_state(by_id: dict[int, dict], e: dict) -> dict | None:
+    """Walk previousEventId back to the *StateEntered event that owns this event."""
+    while e is not None and not e["type"].endswith("StateEntered"):
+        e = by_id.get(e.get("previousEventId"))
+    return e
+
+
+def history_path(sfn, arn: str) -> tuple[list[str], list[str], bool]:
+    """State path, steps rerun by redrive, and whether any event mentions throttling.
+
+    Redrive does not emit a second TaskStateEntered for the failed Task. Per the docs, "the
+    execution reschedules and then reruns the Task state" and a Task "Schedules and starts the
+    Task state again":
+    https://docs.aws.amazon.com/step-functions/latest/dg/redrive-executions.html
+    So a rerun is a TaskScheduled event after ExecutionRedriven whose owning TaskStateEntered
+    came before that ExecutionRedriven. We put the state in the path again at that point.
+    """
+    events = []
     for page in sfn.get_paginator("get_execution_history").paginate(executionArn=arn):
-        for e in page["events"]:
-            if e["type"].endswith("StateEntered"):
-                path.append(e["stateEnteredEventDetails"]["name"])
-            details = json.dumps({k: v for k, v in e.items() if k.endswith("Details")})
-            throttled |= "Throttl" in details
-    return path, throttled
+        events += page["events"]
+    by_id = {e["id"]: e for e in events}
+    path, rerun, throttled, redriven_at = [], [], False, None
+    for e in events:
+        if e["type"] == "ExecutionRedriven":
+            redriven_at = e["id"]
+        elif e["type"].endswith("StateEntered"):
+            path.append(e["stateEnteredEventDetails"]["name"])
+        elif e["type"] == "TaskScheduled" and redriven_at is not None:
+            owner = entered_state(by_id, e)
+            if owner is not None and owner["id"] < redriven_at:
+                name = owner["stateEnteredEventDetails"]["name"]
+                path.append(name)
+                rerun.append(name)
+        details = json.dumps({k: v for k, v in e.items() if k.endswith("Details")}, default=str)
+        throttled |= "Throttl" in details
+    return path, rerun, throttled
 
 
 def wait(sfn, arn: str) -> dict:
@@ -282,13 +309,15 @@ def phase_run() -> list[dict]:
                 sfn.redrive_execution(executionArn=ex["executionArn"])
                 time.sleep(1)
                 d = wait(sfn, ex["executionArn"])
-            path, throttled = history_path(sfn, ex["executionArn"])
+            path, rerun, throttled = history_path(sfn, ex["executionArn"])
             if throttled:
                 invalid.append(f"throttling in {ex['executionArn']}")
             want = (
                 expected_redrive(job) if scenario == "abend_redrive" else EXPECTED[(job, scenario)]
             )
-            rerun = sorted(k for k, v in Counter(path).items() if v > 1)
+            want_rerun = [spec["abend"]] if scenario == "abend_redrive" else []
+            if rerun != want_rerun:
+                invalid.append(f"{job} {scenario} reran {rerun or 'nothing'}, want {want_rerun}")
             ms = int((d.get("stopDate", d["startDate"]) - d["startDate"]).total_seconds() * 1000)
             rows.append(
                 row(
@@ -297,9 +326,11 @@ def phase_run() -> list[dict]:
                     job=job,
                     scenario=scenario,
                     execution_arn=ex["executionArn"],
-                    path_match=str(path == want and d["status"] == "SUCCEEDED").lower(),
+                    path_match=str(
+                        path == want and rerun == want_rerun and d["status"] == "SUCCEEDED"
+                    ).lower(),
                     redrive_count=d.get("redriveCount", 0),
-                    steps_rerun="|".join(rerun),
+                    steps_rerun="|".join(rerun),  # B1: from TaskScheduled, not StateEntered
                     duration_ms=ms,
                     validate_result=d["status"],
                 )

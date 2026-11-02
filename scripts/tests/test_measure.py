@@ -69,4 +69,40 @@ def test_history_path_reads_entered_states():
     ]
     with Stubber(client) as stub:
         stub.add_response("get_execution_history", {"events": events}, {"executionArn": "x"})
-        assert measure.history_path(client, "x") == (["JOB", "STEP05"], False)
+        assert measure.history_path(client, "x") == (["JOB", "STEP05"], [], False)
+
+
+FIXTURE = Path(__file__).parent / "fixtures" / "redrive-TRANBKP-history.json"
+
+
+def stub_history(events):
+    client = boto3.client("stepfunctions", region_name="us-east-1")
+    stub = Stubber(client)
+    stub.add_response("get_execution_history", {"events": events}, {"executionArn": "x"})
+    return client, stub
+
+
+def test_redrive_history_reproduces_b1_and_counts_the_rerun():
+    """Recorded GetExecutionHistory of a TRANBKP abend at STEP05, cleared, then redriven."""
+    events = json.loads(FIXTURE.read_text())["events"]
+    # B1: redrive emits no second TaskStateEntered, so counting entered states finds no rerun.
+    entered = [e["stateEnteredEventDetails"]["name"] for e in events if "StateEntered" in e["type"]]
+    assert all(entered.count(n) == 1 for n in entered)
+    assert [e["type"] for e in events].count("ExecutionRedriven") == 1
+    client, stub = stub_history(events)
+    with stub:
+        path, rerun, throttled = measure.history_path(client, "x")
+    assert rerun == ["STEP05"] and not throttled
+    assert path == measure.expected_redrive("TRANBKP")
+
+
+def test_task_retry_before_redrive_is_not_a_rerun():
+    events = [
+        {"timestamp": 0, "type": "TaskStateEntered", "id": 1,
+         "stateEnteredEventDetails": {"name": "S1"}},
+        {"timestamp": 0, "type": "TaskScheduled", "id": 2, "previousEventId": 1},
+        {"timestamp": 0, "type": "TaskScheduled", "id": 3, "previousEventId": 2},
+    ]  # fmt: skip
+    client, stub = stub_history(events)
+    with stub:
+        assert measure.history_path(client, "x") == (["S1"], [], False)
