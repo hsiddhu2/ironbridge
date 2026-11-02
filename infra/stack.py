@@ -94,7 +94,7 @@ class JclStack(cdk.Stack):
         jobs = list(dict.fromkeys(sample_jobs + called))
 
         # Job role: invoke the stub. CDK adds the CloudWatch Logs delivery actions on "*",
-        # which the Step Functions docs require (cw-logs.html).
+        # which the Step Functions docs require: https://docs.aws.amazon.com/step-functions/latest/dg/cw-logs.html
         job_role = iam.Role(
             self, "JobRole", assumed_by=iam.ServicePrincipal("states.amazonaws.com")
         )
@@ -139,6 +139,9 @@ class JclStack(cdk.Stack):
                 ],
             )
         )
+        # Parent role: CDK adds the same CloudWatch Logs delivery actions on "*"
+        # because logs= is set. Required per
+        # https://docs.aws.amazon.com/step-functions/latest/dg/cw-logs.html
         parent = sfn.StateMachine(
             self,
             "Parent",
