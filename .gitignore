@@ -13,3 +13,4 @@ outputs.json
 .DS_Store
 results.csv
 results-*.csv
+build.log
