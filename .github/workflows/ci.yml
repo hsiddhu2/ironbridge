@@ -27,21 +27,18 @@ jobs:
       - name: Install
         run: |
           uv sync --all-extras
-          npm i -g aws-cdk
-          cd infra && npm ci || true
+          cd infra && npm ci
 
       - name: Lint
         run: |
-          uv run ruff check src tests scripts infra
-          uv run ruff format --check src tests scripts infra
+          uv run ruff check .
+          uv run ruff format --check .
 
       - name: Test
         run: uv run pytest -q
 
       - name: Synth
-        run: cd infra && uv run cdk synth --quiet
-        env:
-          CDK_DEFAULT_REGION: us-east-1
+        run: make synth
 
       - name: Scan IaC
         run: uv run checkov -d infra/cdk.out --framework cloudformation --quiet --compact --soft-fail-on LOW,MEDIUM
