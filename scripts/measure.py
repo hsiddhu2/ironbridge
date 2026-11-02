@@ -21,7 +21,7 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
-from awsctx import REGION, ROOT, STACK, outputs, session
+from awsctx import DEFAULT_REGION, REGION, ROOT, STACK, guarded, outputs, session
 
 from ironbridge import __version__
 from ironbridge.core.report import MARKER
@@ -399,6 +399,8 @@ def main(argv: list[str] | None = None) -> int:
         "diff": phase_diff,
         "run": phase_run,
     }
+    if REGION != DEFAULT_REGION:
+        print(f"WARNING: region {REGION}. The plan is only valid in {DEFAULT_REGION}.")
     rows = []
     for p in phases:
         rows += funcs[p]()
@@ -409,4 +411,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(guarded(main))

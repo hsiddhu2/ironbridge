@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import time
 
-from awsctx import outputs, session
+from awsctx import REGION, guarded, outputs, session
 
 
 def main() -> int:
@@ -17,7 +17,7 @@ def main() -> int:
     s, cfg = session()
     sfn = s.client("stepfunctions", config=cfg)
     ex = sfn.start_execution(stateMachineArn=out["ParentArn"], input=json.dumps({"gdg": {}}))
-    print("started", ex["executionArn"])
+    print(f"started in {REGION}", ex["executionArn"])
     while (d := sfn.describe_execution(executionArn=ex["executionArn"]))["status"] == "RUNNING":
         time.sleep(2)
     events = sfn.get_execution_history(executionArn=ex["executionArn"], maxResults=1000)["events"]
@@ -30,4 +30,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(guarded(main))

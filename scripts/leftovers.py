@@ -3,7 +3,7 @@ log groups, roles and policies whose name starts with the stack name."""
 
 from __future__ import annotations
 
-from awsctx import REGION, STACK, session
+from awsctx import REGION, STACK, guarded, session
 from botocore.exceptions import ClientError
 
 
@@ -57,4 +57,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(guarded(main))
