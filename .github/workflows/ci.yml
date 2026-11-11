@@ -49,7 +49,7 @@ jobs:
             echo "Possible secret found"; exit 1; fi
 
       - name: Upload template
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cdk-template
           path: infra/cdk.out/*.template.json
