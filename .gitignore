@@ -3,9 +3,14 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
+build/
+dist/
 infra/cdk.out/
 infra/node_modules/
 outputs.json
 .env
 *.log
 .DS_Store
+results.csv
+results-*.csv
+build.log

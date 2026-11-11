@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: ["main", "post/**"]
   pull_request:
 
 permissions:
@@ -22,33 +22,30 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install
         run: |
           uv sync --all-extras
-          npm i -g aws-cdk
-          cd infra && npm ci || true
+          cd infra && npm ci
 
-      - name: Lint
+      - name: Lint and test
+        run: make lint test
+
+      - name: Build and check the headline coverage
         run: |
-          uv run ruff check src tests scripts infra
-          uv run ruff format --check src tests scripts infra
-
-      - name: Test
-        run: uv run pytest -q
+          make build | tee build.log
+          grep -F '97.3% (497/511)' build.log
 
       - name: Synth
-        run: cd infra && uv run cdk synth --quiet
-        env:
-          CDK_DEFAULT_REGION: us-east-1
+        run: make synth
 
-      - name: Scan IaC
-        run: uv run checkov -d infra/cdk.out --framework cloudformation --quiet --compact --soft-fail-on LOW,MEDIUM
+      - name: Scan IaC with checkov
+        run: uv run checkov -f infra/cdk.out/ironbridge-m4.template.json --framework cloudformation --quiet --compact
 
       - name: Secrets scan
         run: |
-          if grep -rEn 'AKI[A][0-9A-Z]{16}|aws_secret_access_ke[y]|-----BEGI[N]' --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=cdk.out . ; then
+          if grep -rEn 'AKI[A][0-9A-Z]{16}|aws_secret_access_ke[y]|-----BEGI[N]' --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=cdk.out --exclude-dir=.venv --exclude=ci.yml . ; then
             echo "Possible secret found"; exit 1; fi
 
       - name: Upload template

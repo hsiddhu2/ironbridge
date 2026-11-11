@@ -1,0 +1,13 @@
+flowchart TB
+  SRC["CardDemo JCL, PROC, Control-M XML"] -->|source text| CLI["ironbridge jcl to-asl"]
+  CLI -->|ASL JSON| BUILD["build/ folder"]
+  CLI -->|TODO inventory| COV["coverage.json"]
+  BUILD -->|definitions| CDK["AWS CDK deploy"]
+  CDK -->|cron, DISABLED| SCH["Amazon EventBridge Scheduler"]
+  SCH -->|StartExecution| PARENT["AWS Step Functions folder parent"]
+  PARENT -->|startExecution.sync:2| JOB["AWS Step Functions job"]
+  JOB -->|step, pgm, dd| STUB["AWS Lambda RC stub"]
+  STUB -->|rc or Abend| JOB
+  JOB -->|execution logs| CWL["Amazon CloudWatch Logs"]
+  STUB -->|function logs| CWL
+  OP["Operator, AWS_PROFILE=sandbox"] -->|RedriveExecution| JOB

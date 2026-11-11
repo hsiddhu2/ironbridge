@@ -1,31 +1,49 @@
 [project]
 name = "ironbridge"
 version = "0.1.0"
-description = "I turned CardDemo's 38 JCL jobs and its Control-M schedule into Step Functions. N% converted without a hand edit"
+description = "Mainframe artifacts in, AWS targets out. v0.1.0 turns JCL and Control-M into Step Functions."
+readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Harpreet S. Siddhu" }]
 dependencies = [
-  "boto3>=1.35",
+  "defusedxml>=0.7.1",
 ]
 
 [project.optional-dependencies]
 dev = [
   "pytest>=8",
-  "moto[all]>=5",
   "ruff>=0.6",
-  "aws-cdk-lib>=2.160",
+  "boto3>=1.35",
+  "jsonata-python>=0.7.1",
+  "aws-cdk-lib>=2.170",
   "constructs>=10",
   "checkov>=3",
 ]
 
+[project.scripts]
+ironbridge = "ironbridge.cli:main"
+
+# Each subcommand group registers here. Post 1 ships `jcl`. vsam, cobol, ebcdic, cics and
+# transform plug in the same way in later releases.
+[project.entry-points."ironbridge.commands"]
+jcl = "ironbridge.jcl.command:register"
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ironbridge"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+extend-exclude = ["infra/cdk.out", "infra/node_modules"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "S"]
 ignore = ["S101"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["ironbridge", "infra/tests", "scripts/tests"]

@@ -1,6 +1,10 @@
 {
   "app": "python app.py",
   "context": {
-    "@aws-cdk/core:newStyleStackSynthesis": true
+    "region": "us-east-1",
+    "stackName": "ironbridge-m4",
+    "buildDir": "../build",
+    "sampleJobs": ["TRANBKP", "DEFGDGD", "TRANREPT"],
+    "deployFolder": "DAILY-TransactionBackup"
   }
 }

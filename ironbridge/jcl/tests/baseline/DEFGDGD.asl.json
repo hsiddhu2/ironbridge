@@ -1,0 +1,314 @@
+{
+  "Comment": "Hand-written baseline for CardDemo DEFGDGD.jcl. Defines three GDG bases and loads the first generation of each.",
+  "QueryLanguage": "JSONata",
+  "StartAt": "JOB",
+  "States": {
+    "JOB": {
+      "Type": "Pass",
+      "Comment": "DEFGDGD JOB CLASS=A MSGCLASS=0 NOTIFY=&SYSUID. The JCL carries RESTART=STEP30 as a comment. Redrive restarts at the failed step instead.",
+      "Assign": {
+        "sim": "{% $exists($states.input.simulate) ? $states.input.simulate : {} %}",
+        "gdg": "{% $merge([{'AWS.M2.CARDDEMO.TRANTYPE.BKUP': 0, 'AWS.M2.CARDDEMO.TRANCATG.PS.BKUP': 0, 'AWS.M2.CARDDEMO.DISCGRP.BKUP': 0}, $exists($states.input.gdg) ? $states.input.gdg : {}]) %}",
+        "gdgnew": {},
+        "rc": {},
+        "notify": "{% $states.context.Execution.RoleArn %}"
+      },
+      "Next": "STEP10"
+    },
+    "STEP10": {
+      "Type": "Task",
+      "Comment": "IDCAMS DEFINE GENERATIONDATAGROUP AWS.M2.CARDDEMO.TRANTYPE.BKUP LIMIT(5) SCRATCH.",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "${StubFunctionArn}",
+        "Payload": {
+          "job": "DEFGDGD",
+          "step": "STEP10",
+          "pgm": "IDCAMS",
+          "parm": "",
+          "dd": {
+            "SYSPRINT": {"SYSOUT": "*"},
+            "SYSIN": {
+              "instream": [
+                "   DEFINE GENERATIONDATAGROUP -",
+                "   (NAME(AWS.M2.CARDDEMO.TRANTYPE.BKUP) -",
+                "    LIMIT(5) -",
+                "    SCRATCH -",
+                "   )"
+              ]
+            }
+          },
+          "simulate": "{% $sim %}"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Assign": {
+        "rc": "{% $merge([$rc, {'STEP10': $states.result.Payload.rc}]) %}"
+      },
+      "Next": "COND STEP20"
+    },
+    "COND STEP20": {
+      "Type": "Choice",
+      "Comment": "COND=(0,NE). Bypass STEP20 when any prior RC is not 0.",
+      "Choices": [
+        {
+          "Condition": "{% $count([$rc.*][0 != $]) > 0 %}",
+          "Next": "COND STEP30"
+        }
+      ],
+      "Default": "STEP20"
+    },
+    "STEP20": {
+      "Type": "Task",
+      "Comment": "IEBGENER copies TRANTYPE.PS into the first generation of TRANTYPE.BKUP.",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "${StubFunctionArn}",
+        "Payload": {
+          "job": "DEFGDGD",
+          "step": "STEP20",
+          "pgm": "IEBGENER",
+          "parm": "",
+          "dd": {
+            "SYSPRINT": {"SYSOUT": "*"},
+            "SYSIN": {"DUMMY": true},
+            "SYSUT1": {"DISP": "SHR", "DSN": "AWS.M2.CARDDEMO.TRANTYPE.PS"},
+            "SYSUT2": {
+              "DSN": "{% 'gdg/AWS.M2.CARDDEMO.TRANTYPE.BKUP/G' & $formatInteger($lookup($gdg, 'AWS.M2.CARDDEMO.TRANTYPE.BKUP') + 1, '0000') & 'V00/' %}",
+              "DISP": "(NEW,CATLG)",
+              "DCB": "(LRECL=60,RECFM=FB,BLKSIZE=600)",
+              "SPACE": "(TRK,(1,1),RLSE)"
+            }
+          },
+          "simulate": "{% $sim %}"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Assign": {
+        "rc": "{% $merge([$rc, {'STEP20': $states.result.Payload.rc}]) %}",
+        "gdgnew": "{% $merge([$gdgnew, {'AWS.M2.CARDDEMO.TRANTYPE.BKUP': $lookup($gdg, 'AWS.M2.CARDDEMO.TRANTYPE.BKUP') + 1}]) %}"
+      },
+      "Next": "COND STEP30"
+    },
+    "COND STEP30": {
+      "Type": "Choice",
+      "Comment": "COND=(0,NE). Bypass STEP30 when any prior RC is not 0.",
+      "Choices": [
+        {
+          "Condition": "{% $count([$rc.*][0 != $]) > 0 %}",
+          "Next": "COND STEP40"
+        }
+      ],
+      "Default": "STEP30"
+    },
+    "STEP30": {
+      "Type": "Task",
+      "Comment": "IDCAMS DEFINE GENERATIONDATAGROUP AWS.M2.CARDDEMO.TRANCATG.PS.BKUP LIMIT(5) SCRATCH.",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "${StubFunctionArn}",
+        "Payload": {
+          "job": "DEFGDGD",
+          "step": "STEP30",
+          "pgm": "IDCAMS",
+          "parm": "",
+          "dd": {
+            "SYSPRINT": {"SYSOUT": "*"},
+            "SYSIN": {
+              "instream": [
+                "   DEFINE GENERATIONDATAGROUP -",
+                "   (NAME(AWS.M2.CARDDEMO.TRANCATG.PS.BKUP) -",
+                "    LIMIT(5) -",
+                "    SCRATCH -",
+                "   )"
+              ]
+            }
+          },
+          "simulate": "{% $sim %}"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Assign": {
+        "rc": "{% $merge([$rc, {'STEP30': $states.result.Payload.rc}]) %}"
+      },
+      "Next": "COND STEP40"
+    },
+    "COND STEP40": {
+      "Type": "Choice",
+      "Comment": "COND=(0,NE). Bypass STEP40 when any prior RC is not 0.",
+      "Choices": [
+        {
+          "Condition": "{% $count([$rc.*][0 != $]) > 0 %}",
+          "Next": "STEP50"
+        }
+      ],
+      "Default": "STEP40"
+    },
+    "STEP40": {
+      "Type": "Task",
+      "Comment": "IEBGENER copies TRANCATG.PS into the first generation of TRANCATG.PS.BKUP.",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "${StubFunctionArn}",
+        "Payload": {
+          "job": "DEFGDGD",
+          "step": "STEP40",
+          "pgm": "IEBGENER",
+          "parm": "",
+          "dd": {
+            "SYSPRINT": {"SYSOUT": "*"},
+            "SYSIN": {"DUMMY": true},
+            "SYSUT1": {"DISP": "SHR", "DSN": "AWS.M2.CARDDEMO.TRANCATG.PS"},
+            "SYSUT2": {
+              "DSN": "{% 'gdg/AWS.M2.CARDDEMO.TRANCATG.PS.BKUP/G' & $formatInteger($lookup($gdg, 'AWS.M2.CARDDEMO.TRANCATG.PS.BKUP') + 1, '0000') & 'V00/' %}",
+              "DISP": "(NEW,CATLG)",
+              "DCB": "(LRECL=60,RECFM=FB,BLKSIZE=600)",
+              "SPACE": "(TRK,(1,1),RLSE)"
+            }
+          },
+          "simulate": "{% $sim %}"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Assign": {
+        "rc": "{% $merge([$rc, {'STEP40': $states.result.Payload.rc}]) %}",
+        "gdgnew": "{% $merge([$gdgnew, {'AWS.M2.CARDDEMO.TRANCATG.PS.BKUP': $lookup($gdg, 'AWS.M2.CARDDEMO.TRANCATG.PS.BKUP') + 1}]) %}"
+      },
+      "Next": "STEP50"
+    },
+    "STEP50": {
+      "Type": "Task",
+      "Comment": "IDCAMS DEFINE GENERATIONDATAGROUP AWS.M2.CARDDEMO.DISCGRP.BKUP LIMIT(5) SCRATCH. No COND, so it always runs.",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "${StubFunctionArn}",
+        "Payload": {
+          "job": "DEFGDGD",
+          "step": "STEP50",
+          "pgm": "IDCAMS",
+          "parm": "",
+          "dd": {
+            "SYSPRINT": {"SYSOUT": "*"},
+            "SYSIN": {
+              "instream": [
+                "   DEFINE GENERATIONDATAGROUP -",
+                "   (NAME(AWS.M2.CARDDEMO.DISCGRP.BKUP) -",
+                "    LIMIT(5) -",
+                "    SCRATCH -",
+                "   )"
+              ]
+            }
+          },
+          "simulate": "{% $sim %}"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Assign": {
+        "rc": "{% $merge([$rc, {'STEP50': $states.result.Payload.rc}]) %}"
+      },
+      "Next": "COND STEP60"
+    },
+    "COND STEP60": {
+      "Type": "Choice",
+      "Comment": "COND=(0,NE). Bypass STEP60 when any prior RC is not 0.",
+      "Choices": [
+        {
+          "Condition": "{% $count([$rc.*][0 != $]) > 0 %}",
+          "Next": "EOJ"
+        }
+      ],
+      "Default": "STEP60"
+    },
+    "STEP60": {
+      "Type": "Task",
+      "Comment": "IEBGENER copies DISCGRP.PS into the first generation of DISCGRP.BKUP.",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "${StubFunctionArn}",
+        "Payload": {
+          "job": "DEFGDGD",
+          "step": "STEP60",
+          "pgm": "IEBGENER",
+          "parm": "",
+          "dd": {
+            "SYSPRINT": {"SYSOUT": "*"},
+            "SYSIN": {"DUMMY": true},
+            "SYSUT1": {"DISP": "SHR", "DSN": "AWS.M2.CARDDEMO.DISCGRP.PS"},
+            "SYSUT2": {
+              "DSN": "{% 'gdg/AWS.M2.CARDDEMO.DISCGRP.BKUP/G' & $formatInteger($lookup($gdg, 'AWS.M2.CARDDEMO.DISCGRP.BKUP') + 1, '0000') & 'V00/' %}",
+              "DISP": "(NEW,CATLG)",
+              "DCB": "(LRECL=50,RECFM=FB,BLKSIZE=500)",
+              "SPACE": "(TRK,(1,1),RLSE)"
+            }
+          },
+          "simulate": "{% $sim %}"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Assign": {
+        "rc": "{% $merge([$rc, {'STEP60': $states.result.Payload.rc}]) %}",
+        "gdgnew": "{% $merge([$gdgnew, {'AWS.M2.CARDDEMO.DISCGRP.BKUP': $lookup($gdg, 'AWS.M2.CARDDEMO.DISCGRP.BKUP') + 1}]) %}"
+      },
+      "Next": "EOJ"
+    },
+    "EOJ": {
+      "Type": "Pass",
+      "Comment": "End of job. Returns step RCs, MAXCC and the advanced GDG map.",
+      "Output": {
+        "job": "DEFGDGD",
+        "rc": "{% $rc %}",
+        "maxcc": "{% $count([$rc.*]) > 0 ? $max([$rc.*]) : 0 %}",
+        "gdg": "{% $merge([$gdg, $gdgnew]) %}"
+      },
+      "End": true
+    }
+  }
+}

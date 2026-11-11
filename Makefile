@@ -1,42 +1,53 @@
-.PHONY: install lint test synth bootstrap deploy run measure destroy leftovers clean
+.PHONY: node-check install lint format test build synth bootstrap deploy run measure destroy leftovers clean
 
-STACK ?= IronbridgeStack
-REGION ?= us-east-1
+# Stack name comes from infra/cdk.json context. Region: AWS_REGION, else cdk.json, else us-east-1.
+# Example: AWS_PROFILE=sandbox make deploy
+FIXTURES := ironbridge/jcl/tests/fixtures/carddemo/app
+CDK := cd infra && uv run npx cdk
 
-install:
+# Warns on Node 20, fails below 20. See scripts/check-node.sh.
+node-check:
+	@sh scripts/check-node.sh
+
+install: node-check
 	uv sync --all-extras
 	cd infra && npm ci
 
 lint:
-	uv run ruff check src tests scripts infra
-	uv run ruff format --check src tests scripts infra
+	uv run ruff check .
+	uv run ruff format --check .
 
 format:
-	uv run ruff format src tests scripts infra
+	uv run ruff format .
 
 test:
 	uv run pytest -q
 
-synth:
-	cd infra && uv run cdk synth --quiet
+build:
+	uv run ironbridge jcl to-asl --jcl $(FIXTURES)/jcl --proc $(FIXTURES)/proc \
+	  --controlm $(FIXTURES)/scheduler/CardDemo.controlm --out build
 
-bootstrap:
-	cd infra && uv run cdk bootstrap
+synth: node-check build
+	$(CDK) synth --quiet
 
-deploy:
-	cd infra && uv run cdk deploy $(STACK) --require-approval never --outputs-file ../outputs.json
+bootstrap: node-check
+	$(CDK) bootstrap
+
+deploy: node-check build
+	$(CDK) deploy --all --require-approval never --outputs-file ../outputs.json
 
 run:
 	uv run python scripts/run.py
 
-measure:
-	uv run python scripts/measure.py --runs 3 --out results.csv
+measure: build
+	uv run python scripts/measure.py all
 
-destroy:
-	cd infra && uv run cdk destroy $(STACK) --force
+destroy: node-check build
+	$(CDK) destroy --all --force
+	rm -f outputs.json
 
 leftovers:
-	uv run python scripts/leftovers.py --stack $(STACK) --region $(REGION)
+	uv run python scripts/leftovers.py
 
 clean:
-	rm -rf .venv infra/cdk.out outputs.json .pytest_cache .ruff_cache
+	rm -rf .venv build infra/cdk.out infra/node_modules outputs.json .pytest_cache .ruff_cache

@@ -1,0 +1,376 @@
+{
+ "source": "GetExecutionHistory, TRANBKP abend_redrive, recorded 2026-11-02, account ids replaced, timestamps zeroed",
+ "events": [
+  {
+   "timestamp": 0,
+   "type": "ExecutionStarted",
+   "id": 1,
+   "previousEventId": 0,
+   "executionStartedEventDetails": {
+    "input": "{\"simulate\": {}}",
+    "inputDetails": {
+     "truncated": false
+    },
+    "roleArn": "arn:aws:iam::123456789012:role/ironbridge-m4-JobRole014917C6-ikFIU1hImGEo"
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "PassStateEntered",
+   "id": 2,
+   "previousEventId": 0,
+   "stateEnteredEventDetails": {
+    "name": "JOB",
+    "input": "{\"simulate\": {}}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "PassStateExited",
+   "id": 3,
+   "previousEventId": 2,
+   "stateExitedEventDetails": {
+    "name": "JOB",
+    "output": "{\"simulate\": {}}",
+    "outputDetails": {
+     "truncated": false
+    },
+    "assignedVariables": {
+     "gdg": "{\"AWS.M2.CARDDEMO.TRANSACT.BKUP\":0}",
+     "gdgnew": "{}",
+     "notify": "\"arn:aws:iam::123456789012:role/ironbridge-m4-JobRole014917C6-ikFIU1hImGEo\"",
+     "rc": "{}",
+     "sim": "{}"
+    },
+    "assignedVariablesDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskStateEntered",
+   "id": 4,
+   "previousEventId": 3,
+   "stateEnteredEventDetails": {
+    "name": "STEP05R.PRC001",
+    "input": "{\"simulate\": {}}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskScheduled",
+   "id": 5,
+   "previousEventId": 4,
+   "taskScheduledEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "region": "us-east-1",
+    "parameters": "{\"FunctionName\":\"arn:aws:lambda:us-east-1:123456789012:function:ironbridge-m4-rc-stub\",\"Payload\":{\"job\":\"TRANBKP\",\"step\":\"STEP05R.PRC001\",\"pgm\":\"IDCAMS\",\"parm\":\"\",\"dd\":{\"SYSPRINT\":{\"SYSOUT\":\"*\"},\"FILEIN\":{\"DISP\":\"SHR\",\"DSN\":\"AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS\"},\"FILEOUT\":{\"DISP\":\"(NEW,CATLG,DELETE)\",\"DSN\":\"gdg/AWS.M2.CARDDEMO.TRANSACT.BKUP/G0001V00/\",\"UNIT\":\"SYSDA\",\"DCB\":\"(LRECL=350,RECFM=FB,BLKSIZE=0)\",\"SPACE\":\"(CYL,(1,1),RLSE)\"},\"SYSIN\":{\"DISP\":\"SHR\",\"DSN\":\"AWS.M2.CARDDEMO.CNTL(REPROCT)\"}},\"simulate\":{}}}"
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskStarted",
+   "id": 6,
+   "previousEventId": 5,
+   "taskStartedEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke"
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskSucceeded",
+   "id": 7,
+   "previousEventId": 6,
+   "taskSucceededEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "output": "{\"ExecutedVersion\":\"$LATEST\",\"Payload\":{\"job\":\"TRANBKP\",\"step\":\"STEP05R.PRC001\",\"rc\":0},\"SdkHttpMetadata\":{\"AllHttpHeaders\":{\"X-Amz-Executed-Version\":[\"$LATEST\"],\"x-amzn-Remapped-Content-Length\":[\"0\"],\"Connection\":[\"keep-alive\"],\"x-amzn-RequestId\":[\"a8b45ad6-053d-47ca-9011-7ec336f7c072\"],\"Content-Length\":[\"53\"],\"Date\":[\"Mon, 02 Nov 2026 01:48:51 GMT\"],\"X-Amzn-Trace-Id\":[\"Root=1-6ae7ec03-5aa7b9e125668e2a264c5096;Parent=37cf22d504d15e44;Sampled=0;Lineage=1:58bdbc8f:0\"],\"Content-Type\":[\"application/json\"]},\"HttpHeaders\":{\"Connection\":\"keep-alive\",\"Content-Length\":\"53\",\"Content-Type\":\"application/json\",\"Date\":\"Mon, 02 Nov 2026 01:48:51 GMT\",\"X-Amz-Executed-Version\":\"$LATEST\",\"x-amzn-Remapped-Content-Length\":\"0\",\"x-amzn-RequestId\":\"a8b45ad6-053d-47ca-9011-7ec336f7c072\",\"X-Amzn-Trace-Id\":\"Root=1-6ae7ec03-5aa7b9e125668e2a264c5096;Parent=37cf22d504d15e44;Sampled=0;Lineage=1:58bdbc8f:0\"},\"HttpStatusCode\":200},\"SdkResponseMetadata\":{\"RequestId\":\"a8b45ad6-053d-47ca-9011-7ec336f7c072\"},\"StatusCode\":200}",
+    "outputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskStateExited",
+   "id": 8,
+   "previousEventId": 7,
+   "stateExitedEventDetails": {
+    "name": "STEP05R.PRC001",
+    "output": "{\"ExecutedVersion\":\"$LATEST\",\"Payload\":{\"job\":\"TRANBKP\",\"step\":\"STEP05R.PRC001\",\"rc\":0},\"SdkHttpMetadata\":{\"AllHttpHeaders\":{\"X-Amz-Executed-Version\":[\"$LATEST\"],\"x-amzn-Remapped-Content-Length\":[\"0\"],\"Connection\":[\"keep-alive\"],\"x-amzn-RequestId\":[\"a8b45ad6-053d-47ca-9011-7ec336f7c072\"],\"Content-Length\":[\"53\"],\"Date\":[\"Mon, 02 Nov 2026 01:48:51 GMT\"],\"X-Amzn-Trace-Id\":[\"Root=1-6ae7ec03-5aa7b9e125668e2a264c5096;Parent=37cf22d504d15e44;Sampled=0;Lineage=1:58bdbc8f:0\"],\"Content-Type\":[\"application/json\"]},\"HttpHeaders\":{\"Connection\":\"keep-alive\",\"Content-Length\":\"53\",\"Content-Type\":\"application/json\",\"Date\":\"Mon, 02 Nov 2026 01:48:51 GMT\",\"X-Amz-Executed-Version\":\"$LATEST\",\"x-amzn-Remapped-Content-Length\":\"0\",\"x-amzn-RequestId\":\"a8b45ad6-053d-47ca-9011-7ec336f7c072\",\"X-Amzn-Trace-Id\":\"Root=1-6ae7ec03-5aa7b9e125668e2a264c5096;Parent=37cf22d504d15e44;Sampled=0;Lineage=1:58bdbc8f:0\"},\"HttpStatusCode\":200},\"SdkResponseMetadata\":{\"RequestId\":\"a8b45ad6-053d-47ca-9011-7ec336f7c072\"},\"StatusCode\":200}",
+    "outputDetails": {
+     "truncated": false
+    },
+    "assignedVariables": {
+     "gdgnew": "{\"AWS.M2.CARDDEMO.TRANSACT.BKUP\":1}",
+     "rc": "{\"STEP05R.PRC001\":0}"
+    },
+    "assignedVariablesDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskStateEntered",
+   "id": 9,
+   "previousEventId": 8,
+   "stateEnteredEventDetails": {
+    "name": "STEP05",
+    "input": "{\"ExecutedVersion\":\"$LATEST\",\"Payload\":{\"job\":\"TRANBKP\",\"step\":\"STEP05R.PRC001\",\"rc\":0},\"SdkHttpMetadata\":{\"AllHttpHeaders\":{\"X-Amz-Executed-Version\":[\"$LATEST\"],\"x-amzn-Remapped-Content-Length\":[\"0\"],\"Connection\":[\"keep-alive\"],\"x-amzn-RequestId\":[\"a8b45ad6-053d-47ca-9011-7ec336f7c072\"],\"Content-Length\":[\"53\"],\"Date\":[\"Mon, 02 Nov 2026 01:48:51 GMT\"],\"X-Amzn-Trace-Id\":[\"Root=1-6ae7ec03-5aa7b9e125668e2a264c5096;Parent=37cf22d504d15e44;Sampled=0;Lineage=1:58bdbc8f:0\"],\"Content-Type\":[\"application/json\"]},\"HttpHeaders\":{\"Connection\":\"keep-alive\",\"Content-Length\":\"53\",\"Content-Type\":\"application/json\",\"Date\":\"Mon, 02 Nov 2026 01:48:51 GMT\",\"X-Amz-Executed-Version\":\"$LATEST\",\"x-amzn-Remapped-Content-Length\":\"0\",\"x-amzn-RequestId\":\"a8b45ad6-053d-47ca-9011-7ec336f7c072\",\"X-Amzn-Trace-Id\":\"Root=1-6ae7ec03-5aa7b9e125668e2a264c5096;Parent=37cf22d504d15e44;Sampled=0;Lineage=1:58bdbc8f:0\"},\"HttpStatusCode\":200},\"SdkResponseMetadata\":{\"RequestId\":\"a8b45ad6-053d-47ca-9011-7ec336f7c072\"},\"StatusCode\":200}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskScheduled",
+   "id": 10,
+   "previousEventId": 9,
+   "taskScheduledEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "region": "us-east-1",
+    "parameters": "{\"FunctionName\":\"arn:aws:lambda:us-east-1:123456789012:function:ironbridge-m4-rc-stub\",\"Payload\":{\"job\":\"TRANBKP\",\"step\":\"STEP05\",\"pgm\":\"IDCAMS\",\"parm\":\"\",\"dd\":{\"SYSPRINT\":{\"SYSOUT\":\"*\"},\"SYSIN\":{\"instream\":[\"   DELETE AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS -\",\"          CLUSTER\",\"   IF MAXCC LE 08 THEN SET MAXCC = 0\",\"   DELETE AWS.M2.CARDDEMO.TRANSACT.VSAM.AIX -\",\"          ALTERNATEINDEX\",\"   IF MAXCC LE 08 THEN SET MAXCC = 0\"]}},\"simulate\":{}}}"
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskStarted",
+   "id": 11,
+   "previousEventId": 10,
+   "taskStartedEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke"
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskFailed",
+   "id": 12,
+   "previousEventId": 11,
+   "taskFailedEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "error": "Abend",
+    "cause": "{\"errorMessage\":\"S0C7 simulated in TRANBKP.STEP05\",\"errorType\":\"Abend\",\"requestId\":\"08bdde41-ce5f-4a3e-a045-2052436d5cf8\",\"stackTrace\":[\"  File \\\"/var/task/handler.py\\\", line 33, in handler\\n    raise Abend(f\\\"S0C7 simulated in {key}\\\")\\n\"]}"
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "ExecutionFailed",
+   "id": 13,
+   "previousEventId": 12,
+   "executionFailedEventDetails": {
+    "error": "Abend",
+    "cause": "{\"errorMessage\":\"S0C7 simulated in TRANBKP.STEP05\",\"errorType\":\"Abend\",\"requestId\":\"08bdde41-ce5f-4a3e-a045-2052436d5cf8\",\"stackTrace\":[\"  File \\\"/var/task/handler.py\\\", line 33, in handler\\n    raise Abend(f\\\"S0C7 simulated in {key}\\\")\\n\"]}"
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "ExecutionRedriven",
+   "id": 14,
+   "previousEventId": 13,
+   "executionRedrivenEventDetails": {
+    "redriveCount": 1
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskScheduled",
+   "id": 15,
+   "previousEventId": 9,
+   "taskScheduledEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "region": "us-east-1",
+    "parameters": "{\"FunctionName\":\"arn:aws:lambda:us-east-1:123456789012:function:ironbridge-m4-rc-stub\",\"Payload\":{\"job\":\"TRANBKP\",\"step\":\"STEP05\",\"pgm\":\"IDCAMS\",\"parm\":\"\",\"dd\":{\"SYSPRINT\":{\"SYSOUT\":\"*\"},\"SYSIN\":{\"instream\":[\"   DELETE AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS -\",\"          CLUSTER\",\"   IF MAXCC LE 08 THEN SET MAXCC = 0\",\"   DELETE AWS.M2.CARDDEMO.TRANSACT.VSAM.AIX -\",\"          ALTERNATEINDEX\",\"   IF MAXCC LE 08 THEN SET MAXCC = 0\"]}},\"simulate\":{}}}"
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskStarted",
+   "id": 16,
+   "previousEventId": 15,
+   "taskStartedEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke"
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskSucceeded",
+   "id": 17,
+   "previousEventId": 16,
+   "taskSucceededEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "output": "{\"ExecutedVersion\":\"$LATEST\",\"Payload\":{\"job\":\"TRANBKP\",\"step\":\"STEP05\",\"rc\":0},\"SdkHttpMetadata\":{\"AllHttpHeaders\":{\"X-Amz-Executed-Version\":[\"$LATEST\"],\"x-amzn-Remapped-Content-Length\":[\"0\"],\"Connection\":[\"keep-alive\"],\"x-amzn-RequestId\":[\"84f49668-be83-4c27-a5c6-15f32381f538\"],\"Content-Length\":[\"45\"],\"Date\":[\"Mon, 02 Nov 2026 01:48:54 GMT\"],\"X-Amzn-Trace-Id\":[\"Root=1-6ae7ec06-0a1dfd986689636262190dd3;Parent=09cf0daaddcade7b;Sampled=0;Lineage=1:58bdbc8f:0\"],\"Content-Type\":[\"application/json\"]},\"HttpHeaders\":{\"Connection\":\"keep-alive\",\"Content-Length\":\"45\",\"Content-Type\":\"application/json\",\"Date\":\"Mon, 02 Nov 2026 01:48:54 GMT\",\"X-Amz-Executed-Version\":\"$LATEST\",\"x-amzn-Remapped-Content-Length\":\"0\",\"x-amzn-RequestId\":\"84f49668-be83-4c27-a5c6-15f32381f538\",\"X-Amzn-Trace-Id\":\"Root=1-6ae7ec06-0a1dfd986689636262190dd3;Parent=09cf0daaddcade7b;Sampled=0;Lineage=1:58bdbc8f:0\"},\"HttpStatusCode\":200},\"SdkResponseMetadata\":{\"RequestId\":\"84f49668-be83-4c27-a5c6-15f32381f538\"},\"StatusCode\":200}",
+    "outputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskStateExited",
+   "id": 18,
+   "previousEventId": 17,
+   "stateExitedEventDetails": {
+    "name": "STEP05",
+    "output": "{\"ExecutedVersion\":\"$LATEST\",\"Payload\":{\"job\":\"TRANBKP\",\"step\":\"STEP05\",\"rc\":0},\"SdkHttpMetadata\":{\"AllHttpHeaders\":{\"X-Amz-Executed-Version\":[\"$LATEST\"],\"x-amzn-Remapped-Content-Length\":[\"0\"],\"Connection\":[\"keep-alive\"],\"x-amzn-RequestId\":[\"84f49668-be83-4c27-a5c6-15f32381f538\"],\"Content-Length\":[\"45\"],\"Date\":[\"Mon, 02 Nov 2026 01:48:54 GMT\"],\"X-Amzn-Trace-Id\":[\"Root=1-6ae7ec06-0a1dfd986689636262190dd3;Parent=09cf0daaddcade7b;Sampled=0;Lineage=1:58bdbc8f:0\"],\"Content-Type\":[\"application/json\"]},\"HttpHeaders\":{\"Connection\":\"keep-alive\",\"Content-Length\":\"45\",\"Content-Type\":\"application/json\",\"Date\":\"Mon, 02 Nov 2026 01:48:54 GMT\",\"X-Amz-Executed-Version\":\"$LATEST\",\"x-amzn-Remapped-Content-Length\":\"0\",\"x-amzn-RequestId\":\"84f49668-be83-4c27-a5c6-15f32381f538\",\"X-Amzn-Trace-Id\":\"Root=1-6ae7ec06-0a1dfd986689636262190dd3;Parent=09cf0daaddcade7b;Sampled=0;Lineage=1:58bdbc8f:0\"},\"HttpStatusCode\":200},\"SdkResponseMetadata\":{\"RequestId\":\"84f49668-be83-4c27-a5c6-15f32381f538\"},\"StatusCode\":200}",
+    "outputDetails": {
+     "truncated": false
+    },
+    "assignedVariables": {
+     "rc": "{\"STEP05R.PRC001\":0,\"STEP05\":0}"
+    },
+    "assignedVariablesDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "ChoiceStateEntered",
+   "id": 19,
+   "previousEventId": 18,
+   "stateEnteredEventDetails": {
+    "name": "COND STEP10",
+    "input": "{\"ExecutedVersion\":\"$LATEST\",\"Payload\":{\"job\":\"TRANBKP\",\"step\":\"STEP05\",\"rc\":0},\"SdkHttpMetadata\":{\"AllHttpHeaders\":{\"X-Amz-Executed-Version\":[\"$LATEST\"],\"x-amzn-Remapped-Content-Length\":[\"0\"],\"Connection\":[\"keep-alive\"],\"x-amzn-RequestId\":[\"84f49668-be83-4c27-a5c6-15f32381f538\"],\"Content-Length\":[\"45\"],\"Date\":[\"Mon, 02 Nov 2026 01:48:54 GMT\"],\"X-Amzn-Trace-Id\":[\"Root=1-6ae7ec06-0a1dfd986689636262190dd3;Parent=09cf0daaddcade7b;Sampled=0;Lineage=1:58bdbc8f:0\"],\"Content-Type\":[\"application/json\"]},\"HttpHeaders\":{\"Connection\":\"keep-alive\",\"Content-Length\":\"45\",\"Content-Type\":\"application/json\",\"Date\":\"Mon, 02 Nov 2026 01:48:54 GMT\",\"X-Amz-Executed-Version\":\"$LATEST\",\"x-amzn-Remapped-Content-Length\":\"0\",\"x-amzn-RequestId\":\"84f49668-be83-4c27-a5c6-15f32381f538\",\"X-Amzn-Trace-Id\":\"Root=1-6ae7ec06-0a1dfd986689636262190dd3;Parent=09cf0daaddcade7b;Sampled=0;Lineage=1:58bdbc8f:0\"},\"HttpStatusCode\":200},\"SdkResponseMetadata\":{\"RequestId\":\"84f49668-be83-4c27-a5c6-15f32381f538\"},\"StatusCode\":200}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "ChoiceStateExited",
+   "id": 20,
+   "previousEventId": 19,
+   "stateExitedEventDetails": {
+    "name": "COND STEP10",
+    "output": "{\"ExecutedVersion\":\"$LATEST\",\"Payload\":{\"job\":\"TRANBKP\",\"step\":\"STEP05\",\"rc\":0},\"SdkHttpMetadata\":{\"AllHttpHeaders\":{\"X-Amz-Executed-Version\":[\"$LATEST\"],\"x-amzn-Remapped-Content-Length\":[\"0\"],\"Connection\":[\"keep-alive\"],\"x-amzn-RequestId\":[\"84f49668-be83-4c27-a5c6-15f32381f538\"],\"Content-Length\":[\"45\"],\"Date\":[\"Mon, 02 Nov 2026 01:48:54 GMT\"],\"X-Amzn-Trace-Id\":[\"Root=1-6ae7ec06-0a1dfd986689636262190dd3;Parent=09cf0daaddcade7b;Sampled=0;Lineage=1:58bdbc8f:0\"],\"Content-Type\":[\"application/json\"]},\"HttpHeaders\":{\"Connection\":\"keep-alive\",\"Content-Length\":\"45\",\"Content-Type\":\"application/json\",\"Date\":\"Mon, 02 Nov 2026 01:48:54 GMT\",\"X-Amz-Executed-Version\":\"$LATEST\",\"x-amzn-Remapped-Content-Length\":\"0\",\"x-amzn-RequestId\":\"84f49668-be83-4c27-a5c6-15f32381f538\",\"X-Amzn-Trace-Id\":\"Root=1-6ae7ec06-0a1dfd986689636262190dd3;Parent=09cf0daaddcade7b;Sampled=0;Lineage=1:58bdbc8f:0\"},\"HttpStatusCode\":200},\"SdkResponseMetadata\":{\"RequestId\":\"84f49668-be83-4c27-a5c6-15f32381f538\"},\"StatusCode\":200}",
+    "outputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskStateEntered",
+   "id": 21,
+   "previousEventId": 20,
+   "stateEnteredEventDetails": {
+    "name": "STEP10",
+    "input": "{\"ExecutedVersion\":\"$LATEST\",\"Payload\":{\"job\":\"TRANBKP\",\"step\":\"STEP05\",\"rc\":0},\"SdkHttpMetadata\":{\"AllHttpHeaders\":{\"X-Amz-Executed-Version\":[\"$LATEST\"],\"x-amzn-Remapped-Content-Length\":[\"0\"],\"Connection\":[\"keep-alive\"],\"x-amzn-RequestId\":[\"84f49668-be83-4c27-a5c6-15f32381f538\"],\"Content-Length\":[\"45\"],\"Date\":[\"Mon, 02 Nov 2026 01:48:54 GMT\"],\"X-Amzn-Trace-Id\":[\"Root=1-6ae7ec06-0a1dfd986689636262190dd3;Parent=09cf0daaddcade7b;Sampled=0;Lineage=1:58bdbc8f:0\"],\"Content-Type\":[\"application/json\"]},\"HttpHeaders\":{\"Connection\":\"keep-alive\",\"Content-Length\":\"45\",\"Content-Type\":\"application/json\",\"Date\":\"Mon, 02 Nov 2026 01:48:54 GMT\",\"X-Amz-Executed-Version\":\"$LATEST\",\"x-amzn-Remapped-Content-Length\":\"0\",\"x-amzn-RequestId\":\"84f49668-be83-4c27-a5c6-15f32381f538\",\"X-Amzn-Trace-Id\":\"Root=1-6ae7ec06-0a1dfd986689636262190dd3;Parent=09cf0daaddcade7b;Sampled=0;Lineage=1:58bdbc8f:0\"},\"HttpStatusCode\":200},\"SdkResponseMetadata\":{\"RequestId\":\"84f49668-be83-4c27-a5c6-15f32381f538\"},\"StatusCode\":200}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskScheduled",
+   "id": 22,
+   "previousEventId": 21,
+   "taskScheduledEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "region": "us-east-1",
+    "parameters": "{\"FunctionName\":\"arn:aws:lambda:us-east-1:123456789012:function:ironbridge-m4-rc-stub\",\"Payload\":{\"job\":\"TRANBKP\",\"step\":\"STEP10\",\"pgm\":\"IDCAMS\",\"parm\":\"\",\"dd\":{\"SYSPRINT\":{\"SYSOUT\":\"*\"},\"SYSIN\":{\"instream\":[\"   DEFINE CLUSTER (NAME(AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS) -\",\"          CYLINDERS(1 5) -\",\"          VOLUMES(AWSHJ1 -\",\"          ) -\",\"          KEYS(16 0) -\",\"          RECORDSIZE(350 350) -\",\"          SHAREOPTIONS(2 3) -\",\"          ERASE -\",\"          INDEXED -\",\"          ) -\",\"          DATA (NAME(AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS.DATA) -\",\"          ) -\",\"          INDEX (NAME(AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS.INDEX) -\",\"          )\"]}},\"simulate\":{}}}"
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskStarted",
+   "id": 23,
+   "previousEventId": 22,
+   "taskStartedEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke"
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskSucceeded",
+   "id": 24,
+   "previousEventId": 23,
+   "taskSucceededEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "output": "{\"ExecutedVersion\":\"$LATEST\",\"Payload\":{\"job\":\"TRANBKP\",\"step\":\"STEP10\",\"rc\":0},\"SdkHttpMetadata\":{\"AllHttpHeaders\":{\"X-Amz-Executed-Version\":[\"$LATEST\"],\"x-amzn-Remapped-Content-Length\":[\"0\"],\"Connection\":[\"keep-alive\"],\"x-amzn-RequestId\":[\"834051e5-12bd-47dd-b54f-01d947297d9b\"],\"Content-Length\":[\"45\"],\"Date\":[\"Mon, 02 Nov 2026 01:48:54 GMT\"],\"X-Amzn-Trace-Id\":[\"Root=1-6ae7ec06-567d8bbe6b2692b44226867c;Parent=3eeb19da9ae95205;Sampled=0;Lineage=1:58bdbc8f:0\"],\"Content-Type\":[\"application/json\"]},\"HttpHeaders\":{\"Connection\":\"keep-alive\",\"Content-Length\":\"45\",\"Content-Type\":\"application/json\",\"Date\":\"Mon, 02 Nov 2026 01:48:54 GMT\",\"X-Amz-Executed-Version\":\"$LATEST\",\"x-amzn-Remapped-Content-Length\":\"0\",\"x-amzn-RequestId\":\"834051e5-12bd-47dd-b54f-01d947297d9b\",\"X-Amzn-Trace-Id\":\"Root=1-6ae7ec06-567d8bbe6b2692b44226867c;Parent=3eeb19da9ae95205;Sampled=0;Lineage=1:58bdbc8f:0\"},\"HttpStatusCode\":200},\"SdkResponseMetadata\":{\"RequestId\":\"834051e5-12bd-47dd-b54f-01d947297d9b\"},\"StatusCode\":200}",
+    "outputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "TaskStateExited",
+   "id": 25,
+   "previousEventId": 24,
+   "stateExitedEventDetails": {
+    "name": "STEP10",
+    "output": "{\"ExecutedVersion\":\"$LATEST\",\"Payload\":{\"job\":\"TRANBKP\",\"step\":\"STEP10\",\"rc\":0},\"SdkHttpMetadata\":{\"AllHttpHeaders\":{\"X-Amz-Executed-Version\":[\"$LATEST\"],\"x-amzn-Remapped-Content-Length\":[\"0\"],\"Connection\":[\"keep-alive\"],\"x-amzn-RequestId\":[\"834051e5-12bd-47dd-b54f-01d947297d9b\"],\"Content-Length\":[\"45\"],\"Date\":[\"Mon, 02 Nov 2026 01:48:54 GMT\"],\"X-Amzn-Trace-Id\":[\"Root=1-6ae7ec06-567d8bbe6b2692b44226867c;Parent=3eeb19da9ae95205;Sampled=0;Lineage=1:58bdbc8f:0\"],\"Content-Type\":[\"application/json\"]},\"HttpHeaders\":{\"Connection\":\"keep-alive\",\"Content-Length\":\"45\",\"Content-Type\":\"application/json\",\"Date\":\"Mon, 02 Nov 2026 01:48:54 GMT\",\"X-Amz-Executed-Version\":\"$LATEST\",\"x-amzn-Remapped-Content-Length\":\"0\",\"x-amzn-RequestId\":\"834051e5-12bd-47dd-b54f-01d947297d9b\",\"X-Amzn-Trace-Id\":\"Root=1-6ae7ec06-567d8bbe6b2692b44226867c;Parent=3eeb19da9ae95205;Sampled=0;Lineage=1:58bdbc8f:0\"},\"HttpStatusCode\":200},\"SdkResponseMetadata\":{\"RequestId\":\"834051e5-12bd-47dd-b54f-01d947297d9b\"},\"StatusCode\":200}",
+    "outputDetails": {
+     "truncated": false
+    },
+    "assignedVariables": {
+     "rc": "{\"STEP05R.PRC001\":0,\"STEP05\":0,\"STEP10\":0}"
+    },
+    "assignedVariablesDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "PassStateEntered",
+   "id": 26,
+   "previousEventId": 25,
+   "stateEnteredEventDetails": {
+    "name": "EOJ",
+    "input": "{\"ExecutedVersion\":\"$LATEST\",\"Payload\":{\"job\":\"TRANBKP\",\"step\":\"STEP10\",\"rc\":0},\"SdkHttpMetadata\":{\"AllHttpHeaders\":{\"X-Amz-Executed-Version\":[\"$LATEST\"],\"x-amzn-Remapped-Content-Length\":[\"0\"],\"Connection\":[\"keep-alive\"],\"x-amzn-RequestId\":[\"834051e5-12bd-47dd-b54f-01d947297d9b\"],\"Content-Length\":[\"45\"],\"Date\":[\"Mon, 02 Nov 2026 01:48:54 GMT\"],\"X-Amzn-Trace-Id\":[\"Root=1-6ae7ec06-567d8bbe6b2692b44226867c;Parent=3eeb19da9ae95205;Sampled=0;Lineage=1:58bdbc8f:0\"],\"Content-Type\":[\"application/json\"]},\"HttpHeaders\":{\"Connection\":\"keep-alive\",\"Content-Length\":\"45\",\"Content-Type\":\"application/json\",\"Date\":\"Mon, 02 Nov 2026 01:48:54 GMT\",\"X-Amz-Executed-Version\":\"$LATEST\",\"x-amzn-Remapped-Content-Length\":\"0\",\"x-amzn-RequestId\":\"834051e5-12bd-47dd-b54f-01d947297d9b\",\"X-Amzn-Trace-Id\":\"Root=1-6ae7ec06-567d8bbe6b2692b44226867c;Parent=3eeb19da9ae95205;Sampled=0;Lineage=1:58bdbc8f:0\"},\"HttpStatusCode\":200},\"SdkResponseMetadata\":{\"RequestId\":\"834051e5-12bd-47dd-b54f-01d947297d9b\"},\"StatusCode\":200}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "PassStateExited",
+   "id": 27,
+   "previousEventId": 26,
+   "stateExitedEventDetails": {
+    "name": "EOJ",
+    "output": "{\"job\":\"TRANBKP\",\"rc\":{\"STEP05R.PRC001\":0,\"STEP05\":0,\"STEP10\":0},\"maxcc\":0,\"gdg\":{\"AWS.M2.CARDDEMO.TRANSACT.BKUP\":1}}",
+    "outputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": 0,
+   "type": "ExecutionSucceeded",
+   "id": 28,
+   "previousEventId": 27,
+   "executionSucceededEventDetails": {
+    "output": "{\"job\":\"TRANBKP\",\"rc\":{\"STEP05R.PRC001\":0,\"STEP05\":0,\"STEP10\":0},\"maxcc\":0,\"gdg\":{\"AWS.M2.CARDDEMO.TRANSACT.BKUP\":1}}",
+    "outputDetails": {
+     "truncated": false
+    }
+   }
+  }
+ ]
+}
