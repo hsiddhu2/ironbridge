@@ -8,7 +8,7 @@ from ironbridge.jcl.emit import cond_expr, gdg_dsn, job_asl
 from ironbridge.jcl.parser import build_job, load_procs
 from ironbridge.jcl.tests.asl_walk import walk
 
-FIX = Path(__file__).parent / "fixtures" / "carddemo" / "app"
+FIX = Path(__file__).resolve().parents[3] / "fixtures" / "carddemo" / "app"
 BASE = Path(__file__).parent / "baseline"
 
 

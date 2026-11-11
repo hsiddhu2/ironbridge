@@ -1,7 +1,7 @@
 [project]
 name = "ironbridge"
-version = "0.1.0"
-description = "Mainframe artifacts in, AWS targets out. v0.1.0 turns JCL and Control-M into Step Functions."
+version = "0.1.1"
+description = "Mainframe artifacts in, AWS targets out. Tested on AWS CardDemo."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Apache-2.0" }
@@ -39,11 +39,11 @@ packages = ["ironbridge"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-extend-exclude = ["infra/cdk.out", "infra/node_modules"]
+extend-exclude = ["demos/*/infra/cdk.out", "demos/*/infra/node_modules"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "S"]
 ignore = ["S101"]
 
 [tool.pytest.ini_options]
-testpaths = ["ironbridge", "infra/tests", "scripts/tests"]
+testpaths = ["ironbridge", "demos"]

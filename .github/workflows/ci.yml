@@ -25,23 +25,12 @@ jobs:
           node-version: "22"
 
       - name: Install
-        run: |
-          uv sync --all-extras
-          cd infra && npm ci
+        run: uv sync --all-extras
 
-      - name: Lint and test
-        run: make lint test
-
-      - name: Build and check the headline coverage
-        run: |
-          make build | tee build.log
-          grep -F '97.3% (497/511)' build.log
-
-      - name: Synth
-        run: make synth
-
-      - name: Scan IaC with checkov
-        run: uv run checkov -f infra/cdk.out/ironbridge-m4.template.json --framework cloudformation --quiet --compact
+      # Lint and test the package and every demo, then for each demo under demos/:
+      # build, check its headline number, synth its stack and scan the template with checkov.
+      - name: Package and demo checks
+        run: make ci
 
       - name: Secrets scan
         run: |
@@ -52,4 +41,4 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: cdk-template
-          path: infra/cdk.out/*.template.json
+          path: demos/*/infra/cdk.out/*.template.json

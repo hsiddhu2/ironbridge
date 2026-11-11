@@ -9,7 +9,7 @@ from aws_cdk.assertions import Template
 from ironbridge.jcl.command import to_asl
 
 INFRA = Path(__file__).resolve().parents[1]
-FIX = INFRA.parent / "ironbridge" / "jcl" / "tests" / "fixtures" / "carddemo" / "app"
+FIX = INFRA.parents[2] / "fixtures" / "carddemo" / "app"
 sys.path.insert(0, str(INFRA))
 from stack import JclStack  # noqa: E402
 

@@ -1,12 +1,12 @@
 # ironbridge jcl
 
-`ironbridge jcl to-asl` turns JCL members, PROCs and a Control-M XML export into AWS Step Functions state machines, EventBridge Scheduler definitions and a coverage report. It runs offline. No AWS call is made.
+`ironbridge jcl to-asl` turns JCL members, PROCs and a Control-M XML export into AWS Step Functions state machines, EventBridge Scheduler definitions and a coverage report. It runs offline. No AWS call is made. To deploy and measure the output on AWS, see [demos/01-jcl-to-asl](../../demos/01-jcl-to-asl/README.md).
 
 ```bash
 ironbridge jcl to-asl \
-  --jcl ironbridge/jcl/tests/fixtures/carddemo/app/jcl \
-  --proc ironbridge/jcl/tests/fixtures/carddemo/app/proc \
-  --controlm ironbridge/jcl/tests/fixtures/carddemo/app/scheduler/CardDemo.controlm \
+  --jcl fixtures/carddemo/app/jcl \
+  --proc fixtures/carddemo/app/proc \
+  --controlm fixtures/carddemo/app/scheduler/CardDemo.controlm \
   --out build
 ```
 
@@ -54,7 +54,7 @@ Every construct ironbridge cannot translate is written once into the output as `
 
 ## Tests and fixtures
 
-`tests/fixtures/carddemo/` holds the CardDemo JCL, PROC and Control-M input at commit 59cc6c2, with its Apache 2.0 LICENSE and NOTICE. `tests/baseline/` holds the three hand-written ASL files used for the structural diff. They were committed before any generator code.
+`fixtures/carddemo/` at the repo root holds the CardDemo JCL, PROC and Control-M input at commit 59cc6c2, with its Apache 2.0 LICENSE and NOTICE. Every demo shares it. `tests/baseline/` holds the three hand-written ASL files used for the structural diff. They were committed before any generator code.
 
 ```bash
 uv run pytest -q ironbridge

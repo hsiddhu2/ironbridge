@@ -2,7 +2,7 @@ from pathlib import Path
 
 from ironbridge.jcl.controlm import cron, emit_folder, load_folders
 
-FIX = Path(__file__).parent / "fixtures" / "carddemo" / "app"
+FIX = Path(__file__).resolve().parents[3] / "fixtures" / "carddemo" / "app"
 XML = FIX / "scheduler" / "CardDemo.controlm"
 MEMBERS = {p.stem.upper() for p in (FIX / "jcl").iterdir()}
 
