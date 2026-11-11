@@ -1,4 +1,4 @@
-# m4 measurement plan
+# Demo 01 measurement plan
 
 ## Primary metric
 Percent of JCL construct instances emitted with no `TODO(ironbridge)` marker. One decimal.
@@ -28,11 +28,11 @@ The engineer writes the baselines by hand from the JCL into `ironbridge/jcl/test
 
 ## Method
 1. `pip install -e .` on Python 3.12.
-2. Offline: `ironbridge jcl to-asl --jcl data/01-m4/carddemo/app/jcl --proc data/01-m4/carddemo/app/proc --controlm data/01-m4/carddemo/app/scheduler/CardDemo.controlm --out build/`.
+2. Offline: `ironbridge jcl to-asl --jcl ../../fixtures/carddemo/app/jcl --proc ../../fixtures/carddemo/app/proc --controlm ../../fixtures/carddemo/app/scheduler/CardDemo.controlm --out build/`.
 3. Run it twice. `build/` must be byte-identical.
 4. The `coverage.json` TODO count must equal a grep of `build/` for `TODO(ironbridge)`.
 5. Parser counts must equal the denominator. Record any delta with a reason.
-6. `AWS_PROFILE=sandbox python scripts/measure.py validate`, then `measure.py diff`.
+6. From `demos/01-jcl-to-asl`: `AWS_PROFILE=sandbox uv run python scripts/measure.py validate`, then `measure.py diff`.
 7. `cdk deploy`. `measure.py run` executes each sample job three times.
    - Run 1. All RCs 0. Every step runs.
    - Run 2. RCs that trip COND. Bypass path matches the baseline.

@@ -4,7 +4,7 @@ from pathlib import Path
 from ironbridge.cli import main
 from ironbridge.core.report import MARKER
 
-FIX = Path(__file__).parent / "fixtures" / "carddemo" / "app"
+FIX = Path(__file__).resolve().parents[3] / "fixtures" / "carddemo" / "app"
 
 
 def run(out: Path) -> int:

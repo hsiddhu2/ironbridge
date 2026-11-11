@@ -1,4 +1,4 @@
-"""One stack for post m4: three sample jobs, one Control-M folder parent, the jobs it calls,
+"""One stack for demo 01: three sample jobs, one Control-M folder parent, the jobs it calls,
 the RC stub and a DISABLED schedule. Definitions come from `ironbridge jcl to-asl` in build/."""
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from aws_cdk import aws_scheduler as scheduler
 from aws_cdk import aws_stepfunctions as sfn
 from constructs import Construct
 
-STUB_DIR = Path(__file__).resolve().parents[1] / "ironbridge" / "jcl" / "stub"
+STUB_DIR = Path(__file__).resolve().parents[3] / "ironbridge" / "jcl" / "stub"
 SYNC_RULE = "StepFunctionsGetEventsForStepFunctionsExecutionRule"
 LOG_SKIP = [{"id": "CKV_AWS_158", "comment": "Service default encryption, per architecture"}]
 STUB_SKIP = [

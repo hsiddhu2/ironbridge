@@ -5,8 +5,8 @@ __pycache__/
 .ruff_cache/
 build/
 dist/
-infra/cdk.out/
-infra/node_modules/
+cdk.out/
+node_modules/
 outputs.json
 .env
 *.log

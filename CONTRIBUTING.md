@@ -1,17 +1,15 @@
 # Contributing
 
-Thanks for looking. This repo backs a blog post, so the measurement must keep working.
+Thanks for looking. This repo backs a blog series. Each demo under `demos/` backs one post, so its measurement must keep working.
 
 ## Run the checks
 
 ```
 make install
-make lint test
-make build
-make synth
+make ci
 ```
 
-None of these need AWS credentials. CI runs the same steps on Node 22, plus checkov on the synthesized template.
+`make ci` lints and tests the package, then for each demo builds it, checks its headline number, synthesizes its stack and scans the template with checkov. None of it needs AWS credentials. CI runs the same target on Node 22.
 
 ## Propose a change
 
@@ -22,7 +20,7 @@ None of these need AWS credentials. CI runs the same steps on Node 22, plus chec
 
 ## The measurement must still pass
 
-`make build` must still print the coverage line in the README. CI fails if it changes. If you touch the measured path, run `make deploy measure destroy` in a sandbox account and paste the summary in the PR. Do not paste `results.csv`, the execution ARNs carry the account id.
+Each demo's `make build` must still print the number in its README. CI fails if it changes. If you touch a measured path, run `make deploy measure destroy` from that demo folder in a sandbox account and paste the summary in the PR. Do not paste `results.csv`, the execution ARNs carry the account id.
 
 ## Never include
 

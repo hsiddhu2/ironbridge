@@ -1,4 +1,4 @@
-"""Run the m4 measurement plan (docs/measurement-plan.md) and append to results.csv.
+"""Run the demo 01 measurement plan (docs/measurement-plan.md) and append to results.csv.
 
 Phases:
   coverage  offline. Runs to-asl twice, checks byte-identical output and the TODO grep.
@@ -27,8 +27,10 @@ from ironbridge import __version__
 from ironbridge.core.report import MARKER
 from ironbridge.jcl.command import to_asl
 
-FIX = ROOT / "ironbridge" / "jcl" / "tests" / "fixtures" / "carddemo" / "app"
-BASELINE = ROOT / "ironbridge" / "jcl" / "tests" / "baseline"
+# ROOT is this demo folder. REPO is the repository root, where the package and shared fixtures live.
+REPO = ROOT.parents[1]
+FIX = REPO / "fixtures" / "carddemo" / "app"
+BASELINE = REPO / "ironbridge" / "jcl" / "tests" / "baseline"
 BUILD = ROOT / "build"
 CARDDEMO_COMMIT = "59cc6c2fd7ebd7ef7925cad552a01a4b8b6e4d5e"
 COLUMNS = (

@@ -1,6 +1,6 @@
 # Hand-written baselines
 
-These three files were written by hand from the CardDemo JCL alone, before any generator code existed. They are the reference for the structural diff in `scripts/measure.py diff`.
+These three files were written by hand from the CardDemo JCL alone, before any generator code existed. They are the reference for the structural diff in `demos/01-jcl-to-asl/scripts/measure.py diff`.
 
 | File | Source JCL | Why it was picked |
 | --- | --- | --- |

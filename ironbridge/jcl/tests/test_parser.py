@@ -14,7 +14,7 @@ from ironbridge.jcl.parser import (
     substitute,
 )
 
-FIX = Path(__file__).parent / "fixtures" / "carddemo" / "app"
+FIX = Path(__file__).resolve().parents[3] / "fixtures" / "carddemo" / "app"
 
 # research.md counts at CardDemo 59cc6c2. GDG refs differ by 2. See engineer-report.md.
 DENOMINATOR = {
