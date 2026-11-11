@@ -15,7 +15,7 @@ ironbridge is one CLI for mainframe artifacts in and AWS targets out. v0.1.0 shi
 ## Architecture
 
 ```mermaid
-flowchart LR
+flowchart TB
   SRC["CardDemo JCL, PROC, Control-M XML"] -->|source text| CLI["ironbridge jcl to-asl"]
   CLI -->|ASL JSON| BUILD["build/ folder"]
   CLI -->|TODO inventory| COV["coverage.json"]

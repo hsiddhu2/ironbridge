@@ -1,4 +1,4 @@
-flowchart LR
+flowchart TB
   SRC["CardDemo JCL, PROC, Control-M XML"] -->|source text| CLI["ironbridge jcl to-asl"]
   CLI -->|ASL JSON| BUILD["build/ folder"]
   CLI -->|TODO inventory| COV["coverage.json"]
