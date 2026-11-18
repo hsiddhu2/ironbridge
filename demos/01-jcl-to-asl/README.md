@@ -2,7 +2,7 @@
 
 [`ironbridge jcl to-asl`](../../ironbridge/jcl/README.md) turned CardDemo's 38 JCL jobs into AWS Step Functions. 497 of 511 JCL constructs (97.3%) came out with no TODO marker. Program bodies run on a return-code stub in v0.1.x.
 
-Article on AWS Builder Center: {{ARTICLE_URL}}
+Article on AWS Builder Center: link added when it is published. The [deep dive](docs/deep-dive.md) covers the schedule, running it on your own JCL, what broke and production notes.
 
 Run every command below from this folder:
 

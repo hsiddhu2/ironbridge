@@ -1,0 +1,278 @@
+# TRANBKP deep dive: schedules, your own JCL, what broke, production notes
+
+These are the parts of the TRANBKP guide that did not fit in the article. The step numbers match the steps in the guide. Code: [hsiddhu2/ironbridge at v0.1.1, demos/01-jcl-to-asl](https://github.com/hsiddhu2/ironbridge/tree/v0.1.1/demos/01-jcl-to-asl)
+
+## How the converter writes COND
+
+This is the function that writes the Choice expression:
+
+```python
+def cond_expr(tests: list[tuple[int, str, str]]) -> str:
+    """COND bypasses the step when any test is true. No step name means every prior RC."""
+    parts = []
+    for code, op, step in tests:
+        o = COND_OPS[op]
+        if step:
+            ref = f"$lookup($rc, {q(step)})"
+            parts.append(f"($exists({ref}) and {code} {o} {ref})")
+        else:
+            parts.append(f"$count([$rc.*][{code} {o} $]) > 0")
+    return "{% " + " or ".join(parts) + " %}"
+```
+
+A COND with a step name tests only that step. A COND with no step name tests every earlier step. The converter keeps the JCL order of operands, so `(4,LT)` reads as `4 < rc` and never gets flipped by mistake.
+
+## GDG generations become S3 key prefixes
+
+A GDG, or generation data group, is a family of versioned files. `(+1)` means write the next generation. `(0)` means read the current one. The mainframe catalog keeps track of which number is current.
+
+ironbridge carries that number in the execution input as a map called `$gdg`. The `JOB` state seeds it, and a `(+1)` reference becomes a key prefix one generation ahead. This is TRANBKP's backup output:
+
+```json
+"DSN": "{% 'gdg/AWS.M2.CARDDEMO.TRANSACT.BKUP/G' & $formatInteger($lookup($gdg, 'AWS.M2.CARDDEMO.TRANSACT.BKUP') + 1, '0000') & 'V00/' %}"
+```
+
+COMBTRAN, another CardDemo job, reads the same base with `(0)`, so its prefix has no `+ 1`. The `EOJ` state returns the advanced map as `"gdg": "{% $merge([$gdg, $gdgnew]) %}"`, so a caller that passes it into the next run starts from the new generation. The deployed schedule passes an empty input, so each scheduled run starts again at G0001V00.
+
+These prefixes are shaped for [Amazon S3 keys](https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-prefixes.html). In v0.1.1 nothing writes to S3, because every step calls a placeholder. `build/gdg-catalog.json` lists each GDG base with the job and step that define it.
+
+## PROCs are expanded at build time
+
+The PROC call STEP05R became a state named `STEP05R.PRC001`. ironbridge expands PROCs at build time, so the state machine has no PROC concept to resolve at run time. The `PRC001.FILEOUT` override lands there too, which is why the `+ 1` prefix above sits under `STEP05R.PRC001`.
+
+The full state order in `TRANBKP.asl.json` is `JOB`, `STEP05R.PRC001`, `STEP05`, `COND STEP10`, `STEP10`, `EOJ`.
+
+The PROC is no longer one unit on AWS. Change a PROC and you rebuild and redeploy every job that calls it.
+
+## A Control-M folder becomes a parent state machine and a schedule
+
+The INCOND and OUTCOND flags set the order of jobs in a Control-M folder. The converter writes one parent state machine per folder. Each job is a Task that starts the child as a [nested execution with startExecution.sync:2](https://docs.aws.amazon.com/step-functions/latest/dg/connect-stepfunctions.html) and waits for it. This is the TRANBKP entry in `build/folders/DAILY-TransactionBackup.asl.json`, comment trimmed:
+
+```json
+"TRANBKP": {
+  "Type": "Task",
+  "Resource": "arn:aws:states:::states:startExecution.sync:2",
+  "Arguments": {
+    "StateMachineArn": "${Job_TRANBKP}",
+    "Input": {
+      "gdg": "{% $gdg %}",
+      "simulate": "{% $exists($lookup($sim, 'TRANBKP')) ? $lookup($sim, 'TRANBKP') : {} %}",
+      "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID": "{% $states.context.Execution.Id %}"
+    }
+  },
+  "Assign": {
+    "gdg": "{% $merge([$gdg, $states.result.Output.gdg]) %}"
+  },
+  "Next": "WAITSTEP"
+}
+```
+
+The parent passes the GDG map down and takes the advanced map back. So a generation written by one job is the current one for the next job in the folder.
+
+The Control-M calendar becomes an [EventBridge Scheduler](https://docs.aws.amazon.com/scheduler/latest/UserGuide/schedule-types.html) cron schedule. This is `build/schedules/DAILY-TransactionBackup.json`:
+
+```json
+{
+  "folder": "DAILY-TransactionBackup",
+  "expression": "cron(0 0 * * ? *)",
+  "timezone": "UTC",
+  "state": "DISABLED",
+  "comment": "Control-M orders this folder on its DAYS. No TIMEFROM means 00:00."
+}
+```
+
+The XML has no start time or time zone, so each schedule fires at 00:00 UTC and is deployed DISABLED.
+
+> **OPERATOR NOTE:** Scheduler's [State field](https://docs.aws.amazon.com/scheduler/latest/APIReference/API_CreateSchedule.html) takes `ENABLED` or `DISABLED`. ironbridge writes `DISABLED`. Nothing runs on its own until you choose a real start time and turn it on.
+
+The Control-M schedule converted at a lower rate, 62 of 85 constructs, or 72.9%. All 15 TIMETO windows are TODO because EventBridge Scheduler has no end-of-window setting. Two jobs, MNTTRDB2 and TRANEXTR, have no JCL member in CardDemo and fail visibly.
+
+TIMETO is the end of the time window in which Control-M may start a job. On AWS, a job that becomes ready after that time still starts. Control-M would not start it. A person has to decide what late means for each job.
+
+## The 14 JCL gaps
+
+The 14 gaps are 8 SDSF steps, 1 FTP, 1 DFHCSDUP and 1 IKJEFT1B. Then 1 IEBGENER step and its DD that write to the internal reader. The last one is 1 typo in CardDemo itself, NOTIFY=&SYUID in READCUST.
+
+None of them is a COND, GDG or PROC construct. Those are 29 of 29. Most are mainframe utilities with no direct AWS equivalent. ironbridge leaves a TODO rather than guess.
+
+A few words first. CICS is the mainframe's online system, the part that serves screens to users. TSO is its interactive command shell, and REXX is a scripting language that runs under it.
+
+| Gap | Count | What it does on the mainframe | Why it stays a TODO |
+| --- | --- | --- | --- |
+| SDSF | 8 | Sends commands to the CICS region, the online system, to close or open VSAM files before and after a reload | It acts on the online CICS region. No AWS mapping in v0.1.1 |
+| Internal reader | 2 | A step submits another job | It maps to starting another state machine. ironbridge v0.1.1 does not do that |
+| FTP | 1 | Sends a file to another host | Where the file goes is a decision for a person, not a translation |
+| IKJEFT1B | 1 | Runs a REXX exec under batch TSO. In CardDemo it turns the statement file into a PDF | REXX is not converted in v0.1.1 |
+| DFHCSDUP | 1 | Defines CICS online resources | That is online CICS, not batch |
+| Typo | 1 | NOTIFY=&SYUID instead of &SYSUID | The source is wrong. ironbridge flags it instead of fixing it |
+
+These 14 are the ones a person has to decide.
+
+The denominator is 511, from the parser and an independent grep of the pinned CardDemo commit 59cc6c2. The research count of 509 missed two GDG (+1) references.
+
+Reported, not counted: 1 RESTART= comment and 16 IDCAMS IF LASTCC or MAXCC tests. The two `IF MAXCC` lines in TRANBKP's STEP05 are among them. They live inside the IDCAMS program input, so they belong to the program, not the job flow.
+
+Every TODO lands in `build/coverage.json` with its job, file, line and reason. This is one from CardDemo:
+
+```json
+{
+  "row": "EXEC steps",
+  "job": "CARDFILE",
+  "file": "CARDFILE.jcl",
+  "line": 22,
+  "state": "CLCIFIL",
+  "reason": "PGM=SDSF sends console commands to CICS. No AWS mapping in v0.1.0"
+}
+```
+
+## Setup notes for steps 1 and 2
+
+Before you deploy, check which account `aws sts get-caller-identity` prints. It should be your sandbox account.
+
+One [AWS CDK](https://docs.aws.amazon.com/cdk/v2/guide/home.html) stack holds all of it. `make deploy` creates it, `make destroy` removes it, and `make leftovers` checks that nothing is left.
+
+> **OPERATOR NOTE:** The CDK CLI wants Node 22 or 24. Node 20 still runs, with a warning. You also need a CDK bootstrap in the account and region you deploy to. The bootstrap bucket stays after destroy.
+
+The full `make build` output from my run on 2026-11-11:
+
+```text
+$ make build
+uv run ironbridge jcl to-asl --jcl ../../fixtures/carddemo/app/jcl --proc ../../fixtures/carddemo/app/proc \
+	  --controlm ../../fixtures/carddemo/app/scheduler/CardDemo.controlm --out build
+construct                 total   done   todo
+EXEC steps                  101     89     12
+Step COND=                    9      9      0
+GDG relative refs            17     17      0
+GDG base definitions         11     11      0
+EXEC PROC calls               3      3      0
+JCLLIB                        3      3      0
+DD statements               328    327      1
+Symbolic lines               39     38      1
+JCL coverage 97.3% (497/511)
+Hard subset COND, GDG, PROC 100.0% (29/29)
+Control-M coverage 72.9% (62/85)
+TODO markers 37. Wrote build/
+```
+
+The validation output:
+
+```text
+jobs OK 38/38
+parents OK 5/5
+```
+
+Near the end of the deploy you should see these lines:
+
+```text
+ironbridge-m4: creating CloudFormation changeset...
+ironbridge-m4: deploying... [1/1]
+Outputs:
+ironbridge-m4.JobTRANBKPArn = arn:aws:states:us-east-1:<account-id>:stateMachine:ironbridge-m4-TRANBKP
+ironbridge-m4.ParentArn = arn:aws:states:us-east-1:<account-id>:stateMachine:ironbridge-m4-DAILY-TransactionBackup
+ironbridge-m4.ScheduleName = ironbridge-m4-DAILY-TransactionBackup
+ironbridge-m4.StubFunctionName = ironbridge-m4-rc-stub
+```
+
+The parent calls CLOSEFIL, WAITSTEP and OPENFIL, so those are deployed too.
+
+## The stub, for step 5
+
+The stub is where an abend comes from. It reads the step name and either returns a code or raises an error. Logging lines are trimmed:
+
+```python
+class Abend(Exception):
+    """A z/OS abend. Step Functions sees errorType "Abend" and the execution fails."""
+
+
+def handler(event: dict, context) -> dict:
+    job, step = str(event.get("job", "")), str(event.get("step", ""))
+    key = f"{job}.{step}"
+    abends = {s.strip() for s in os.environ.get("ABEND_STEPS", "").split(",") if s.strip()}
+    if key in abends:
+        raise Abend(f"S0C7 simulated in {key}")
+    simulate = event.get("simulate") or {}
+    rc = int(simulate.get(step, 0)) if isinstance(simulate, dict) else 0
+    return {"job": job, "step": step, "rc": rc}
+```
+
+## The redrive history with step names, for step 6
+
+Step 6 of the guide prints this history with None as the step on most lines. Read it from the top. The backup step entered and succeeded. STEP05 entered and failed, and the execution failed with it. Then comes `ExecutionRedriven`.
+
+Here is the same history with the step names filled in.
+
+| Event in the history | Step |
+| --- | --- |
+| TaskStateEntered | STEP05R.PRC001 |
+| TaskSucceeded | STEP05R.PRC001 |
+| TaskStateEntered | STEP05 |
+| TaskFailed | STEP05 |
+| ExecutionFailed | the job |
+| ExecutionRedriven | the job |
+| TaskSucceeded | STEP05, with no new TaskStateEntered |
+| TaskStateEntered | STEP10 |
+| TaskSucceeded | STEP10 |
+
+The Event column is what get-execution-history returned for my run on 2026-11-11. The CLI printed None as the step on every line except TaskStateEntered, so I filled in the Step column. STEP05 on the failed and redriven Task comes from the Step Functions console event list of an earlier run of the same job, on 2026-11-01. The other names come from the TaskStateEntered line before each event. Only STEP05 ran again. The backup step before it did not.
+
+## Step 7 in full: the schedule and the parent run
+
+The schedule from the Control-M folder was deployed in step 2, with the `ParentArn` and `ScheduleName` lines in its output. Open EventBridge Scheduler in the console to see it. To watch the parent run once, `make run` starts it and prints the jobs it ran.
+
+> **ABEND:** At first, `AWS_REGION=eu-west-1 make run` quietly ran in us-east-1, because `outputs.json` pointed at the us-east-1 stack. The scripts now stop on a region mismatch. Deploy, run and measure in one region.
+
+The console shows the cron expression ironbridge wrote, `cron(0 0 * * ? *)`, with the next trigger dates.
+
+> **CHECK:** the schedule `ironbridge-m4-DAILY-TransactionBackup` shows status Disabled and time zone UTC. If you ran `make run`, the parent ran CLOSEFIL, TRANBKP, WAITSTEP and OPENFIL and SUCCEEDED.
+
+## Run it on your own JCL
+
+The converter does not care that the input is CardDemo. Point it at your own folders from the repo:
+
+```bash
+uv run ironbridge jcl to-asl --jcl path/to/your/jcl --proc path/to/your/proc --out build-mine
+jq '.jcl.pct, .jcl.hard_subset.pct' build-mine/coverage.json
+jq -r '.jcl.todos[] | "\(.job) \(.state): \(.reason)"' build-mine/coverage.json
+```
+
+`--controlm` adds a Control-M XML export, and `--timezone` sets the IANA zone for Scheduler. I ran it on a small job outside CardDemo on 2026-11-11, with COND and GDG references. It built and wrote its own `coverage.json`. Outside CardDemo I ran that one small job, and that is all.
+
+> **CHECK:** `build-mine/coverage.json` exists. The first `jq` prints two rates, all JCL and the COND, GDG and PROC subset. The second prints one line per TODO.
+
+## The baseline diff
+
+Before writing the emitter, I wrote ASL by hand for TRANBKP, DEFGDGD and TRANREPT and committed it alone. The generated state machines match those three on state types and transitions, 100%. I wrote both, so this shows the tool reproduces my own reading of the JCL. It is not an independent check.
+
+## What broke, in full
+
+Five of these rows went wrong for me while building or testing this. The LOG_LEVEL, Catch and AccessDenied rows come from the docs and the design. I did not hit them.
+
+These five I saw in my own runs:
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| `make measure` showed `path_match=false` and an empty `steps_rerun` on every abend row, even though the history showed one step rerun | Redrive does not emit a second `TaskStateEntered` for the failed step. It schedules the Task again. My harness counted `TaskStateEntered` events, so it saw a short path | The harness in `scripts/measure.py` now walks each `TaskScheduled` back to its `TaskStateEntered`. A Task scheduled again after `ExecutionRedriven` counts as a rerun |
+| Redrive ran, and the execution failed again at the same step | The abend was still set on the stub | Clear `ABEND_STEPS`, wait with `function-updated-v2`, then redrive again. The second redrive succeeded |
+| `ExecutionNotRedrivable: Execution is SUCCEEDED and cannot be redriven` | I redrove an execution that already succeeded | Start a new execution instead |
+| At first, `AWS_REGION=eu-west-1 make run` quietly ran in us-east-1. Now it stops with `error: the stack in outputs.json is in us-east-1 but the region is eu-west-1. Set AWS_REGION=us-east-1 or redeploy.` | `outputs.json` points at a different region from `AWS_REGION` | The scripts now check the region and stop on a mismatch. Deploy, run and measure in one region. The default is us-east-1 |
+| A Python traceback ending in `ProfileNotFound`. My SSO session also expired once, with `Token has expired and refresh failed` | Missing profile or expired SSO session | The scripts now print one line instead of a traceback, such as `error: AWS profile 'doesnotexist' not found. Check AWS_PROFILE and ~/.aws/config.` Fix the profile or run `aws sso login` |
+
+These three come from the docs and the design, not from my runs:
+
+| Symptom | Cause | Prevention |
+| --- | --- | --- |
+| The stub loses `LOG_LEVEL` after you set `ABEND_STEPS` | `update-function-configuration` replaces the whole [environment](https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html), not one key | Pass every variable each time, as the commands in step 5 do |
+| Redrive cannot restart the step that broke | A `Catch` handled the step error. The run ends on the catch path, and if that path ends in a Fail state, [redrive enters it and fails again](https://docs.aws.amazon.com/step-functions/latest/dg/redrive-executions.html) | Leave step errors uncaught. The emitter writes no Catch and no Fail on step errors |
+| `AccessDenied` on validation | `ValidateStateMachineDefinition` has [no resource type](https://docs.aws.amazon.com/service-authorization/latest/reference/list_stepfunctions.html), so a scoped ARN never matches | Allow it on `*`. The operator policy does this |
+
+One more surprised me. I stopped the parent mid-run and redrove the aborted execution. Step Functions accepted it and it succeeded. The docs list aborted runs as redrivable, so this is the service's behavior, not something ironbridge adds.
+
+## Production notes
+
+**Permissions.** The stack creates an operator policy in `infra/stack.py`. Attach it to whoever runs the scripts. Validate is on `*` because it has no resource type. Start is scoped to this stack's state machines. Redrive is scoped to this stack's executions. The Lambda actions are scoped to the stub. The job and parent roles also get CloudWatch Logs delivery actions on `*`, which the [Step Functions logging docs](https://docs.aws.amazon.com/step-functions/latest/dg/cw-logs.html) require.
+
+**Audit trail.** Every execution sends its events to CloudWatch Logs. The stub writes one JSON line per step with the job, step, program, return code and request id. The execution history keeps the failure and the `ExecutionRedriven` event together, so the abend and the rerun stay in one record.
+
+**Cost.** A full deploy, measure and destroy cycle costs under $1. Mine was a few hundred state transitions and under 300 Lambda calls. [Redrives count as state transitions](https://docs.aws.amazon.com/step-functions/latest/dg/redrive-executions.html) too.
+
+**What was measured.** I measured TRANBKP, DEFGDGD and TRANREPT. The DAILY parent also ran CLOSEFIL, TRANBKP, WAITSTEP and OPENFIL. The other jobs passed validation, but I did not run them on AWS.
