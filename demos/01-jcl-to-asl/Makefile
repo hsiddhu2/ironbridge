@@ -50,7 +50,7 @@ ci:
 	$(MAKE) build | tee build.log
 	grep -F '$(HEADLINE)' build.log
 	$(MAKE) synth
-	uv run checkov -f infra/cdk.out/*.template.json --framework cloudformation --quiet --compact
+	uvx --from checkov==3.4.0 checkov -f infra/cdk.out/*.template.json --framework cloudformation --quiet --compact
 
 clean:
 	rm -rf build infra/cdk.out infra/node_modules outputs.json build.log
