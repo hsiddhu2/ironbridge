@@ -1,6 +1,6 @@
 # Demo 01: JCL and Control-M to AWS Step Functions
 
-[`ironbridge jcl to-asl`](../../ironbridge/jcl/README.md) turned CardDemo's 38 JCL jobs into AWS Step Functions. 497 of 511 JCL constructs (97.3%) came out with no TODO marker. Program bodies run on a return-code stub in v0.1.x.
+[`ironbridge jcl to-asl`](../../ironbridge/jcl/README.md) turned CardDemo's 38 JCL jobs into AWS Step Functions. It converts the job flow, not the programs inside the steps. It handled 497 of 511 JCL constructs automatically. That is 97.3%. It flagged the other 14 for a person to finish. The tool's output calls these flags TODO markers. The Control-M schedule converted at a lower rate, 62 of 85 constructs, or 72.9%. Program bodies run on a return-code stub in v0.1.x.
 
 Article on AWS Builder Center: [How to Move Mainframe Batch Jobs to AWS Step Functions, Step by Step](https://builder.aws.com/content/3LlXuZLqO9UuZeiOq2vi5aJrGWi/how-to-move-mainframe-batch-jobs-to-aws-step-functions-step-by-step). The [deep dive](docs/deep-dive.md) covers the schedule, running it on your own JCL, what broke and production notes.
 

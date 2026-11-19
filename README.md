@@ -6,7 +6,7 @@
 
 Mainframe artifacts in, AWS targets out. One Python CLI, tested end to end on [AWS CardDemo](https://github.com/aws-samples/aws-mainframe-modernization-carddemo). No mainframe needed.
 
-The first command, `ironbridge jcl to-asl`, turned CardDemo's 38 JCL jobs into AWS Step Functions. 497 of 511 JCL constructs (97.3%) came out with no TODO marker. The Control-M schedule converted at 72.9% (62 of 85).
+The first command, `ironbridge jcl to-asl`, turned CardDemo's 38 JCL jobs into AWS Step Functions. It converts the job flow, not the programs inside the steps. It handled 497 of 511 JCL constructs automatically. That is 97.3%. It flagged the other 14 for a person to finish. The Control-M schedule converted at a lower rate, 62 of 85 constructs, or 72.9%.
 
 ## The series
 
@@ -14,7 +14,7 @@ Each post on AWS Builder Center adds one command, one measured result and one re
 
 | # | Command | Mainframe in | AWS out | Result | Release | Demo |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `jcl to-asl` | JCL, PROC, Control-M | Step Functions, EventBridge Scheduler | 97.3% of 511 JCL constructs converted, Control-M 72.9% | [v0.1.1](https://github.com/hsiddhu2/ironbridge/releases/tag/v0.1.1) | [demos/01-jcl-to-asl](demos/01-jcl-to-asl) |
+| 1 | `jcl to-asl` | JCL, PROC, Control-M | Step Functions, EventBridge Scheduler | 497 of 511 JCL constructs handled automatically (97.3%), Control-M 72.9% | [v0.1.1](https://github.com/hsiddhu2/ironbridge/releases/tag/v0.1.1) | [demos/01-jcl-to-asl](demos/01-jcl-to-asl) |
 | 2 | `vsam to-dynamodb` | VSAM, copybooks | DynamoDB | Planned | | |
 | 3 | `cobol run-lambda` | COBOL batch | Lambda | Planned | | |
 | 4 | `ebcdic decode` | EBCDIC files | Iceberg tables | Planned | | |
