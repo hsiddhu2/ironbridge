@@ -32,6 +32,7 @@ REPO = ROOT.parents[1]
 FIX = REPO / "fixtures" / "carddemo" / "app"
 BASELINE = REPO / "ironbridge" / "jcl" / "tests" / "baseline"
 BUILD = ROOT / "build"
+OWNERS = ROOT / "owners.json"
 CARDDEMO_COMMIT = "59cc6c2fd7ebd7ef7925cad552a01a4b8b6e4d5e"
 COLUMNS = (
     "run_id, utc_time, phase, job, construct, total, translated, todo, pct, validate_result, "
@@ -106,7 +107,10 @@ def row(phase: str, n: int, **kw) -> dict:
 
 
 def convert(out: Path):
-    return to_asl(FIX / "jcl", FIX / "proc", FIX / "scheduler" / "CardDemo.controlm", out)
+    # Same inputs as `make build`, including owners.json, so build/ matches what deploys.
+    return to_asl(
+        FIX / "jcl", FIX / "proc", FIX / "scheduler" / "CardDemo.controlm", out, owners=OWNERS
+    )
 
 
 def snapshot(root: Path) -> dict[str, bytes]:

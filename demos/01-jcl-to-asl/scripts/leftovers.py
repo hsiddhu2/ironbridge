@@ -1,5 +1,7 @@
-"""List anything left after `make destroy`: stack, state machines, function, schedule,
-log groups, roles and policies whose name starts with the stack name."""
+"""List anything left after `make destroy`: stack, state machines, functions, schedule,
+log groups, roles, policies, SNS topics, SQS queues and EventBridge rules whose name starts
+with the stack name. The SQS check also catches a queue that `make alert-test` failed to
+delete."""
 
 from __future__ import annotations
 
@@ -44,6 +46,19 @@ def find(s, cfg) -> list[str]:
             for p in page["Policies"]
             if p["PolicyName"].startswith(STACK)
         ]
+    sns = s.client("sns", config=cfg)
+    for page in sns.get_paginator("list_topics").paginate():
+        found += [
+            f"topic {t['TopicArn']}"
+            for t in page["Topics"]
+            if t["TopicArn"].rsplit(":", 1)[-1].startswith(STACK)
+        ]
+    sqs = s.client("sqs", config=cfg)
+    for page in sqs.get_paginator("list_queues").paginate(QueueNamePrefix=STACK):
+        found += [f"queue {u.rsplit('/', 1)[-1]}" for u in page.get("QueueUrls", [])]
+    events = s.client("events", config=cfg)
+    for page in events.get_paginator("list_rules").paginate(NamePrefix=STACK):
+        found += [f"rule {r['Name']}" for r in page["Rules"]]
     return found
 
 

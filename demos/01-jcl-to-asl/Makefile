@@ -1,4 +1,4 @@
-.PHONY: node-check install install-infra build synth bootstrap deploy run measure destroy leftovers ci clean
+.PHONY: node-check install install-infra build synth bootstrap deploy run measure alert-test destroy leftovers ci clean
 
 # Post 1: ironbridge jcl to-asl on CardDemo. Run every target from this folder.
 # Stack name comes from infra/cdk.json context. Region: AWS_REGION, else cdk.json, else us-east-1.
@@ -21,7 +21,7 @@ install-infra:
 
 build:
 	uv run ironbridge jcl to-asl --jcl $(FIXTURES)/jcl --proc $(FIXTURES)/proc \
-	  --controlm $(FIXTURES)/scheduler/CardDemo.controlm --out build
+	  --controlm $(FIXTURES)/scheduler/CardDemo.controlm --owners owners.json --out build
 
 synth: node-check build
 	$(CDK) synth --quiet
@@ -37,6 +37,11 @@ run:
 
 measure: build
 	uv run python scripts/measure.py all
+
+# Deployed. Breaks TRANBKP STEP05, checks one SNS alert per failure through a temporary SQS
+# queue, redrives, and checks that a successful redrive sends nothing. Cleans up the queue.
+alert-test: build
+	uv run python scripts/alert_test.py
 
 destroy: node-check build
 	$(CDK) destroy --all --force
