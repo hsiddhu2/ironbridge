@@ -1,0 +1,147 @@
+{
+ "events": [
+  {
+   "timestamp": "2026-11-21T10:00:01.000000+00:00",
+   "type": "ExecutionStarted",
+   "id": 1,
+   "previousEventId": 0,
+   "executionStartedEventDetails": {
+    "input": "{\"simulate\": {}}",
+    "roleArn": "arn:aws:iam::111122223333:role/ironbridge-m4-JobRole"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:02.000000+00:00",
+   "type": "PassStateEntered",
+   "id": 2,
+   "previousEventId": 1,
+   "stateEnteredEventDetails": {
+    "name": "JOB",
+    "input": "{}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:03.000000+00:00",
+   "type": "PassStateExited",
+   "id": 3,
+   "previousEventId": 2,
+   "stateExitedEventDetails": {
+    "name": "JOB",
+    "output": "{}",
+    "outputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:04.000000+00:00",
+   "type": "TaskStateEntered",
+   "id": 4,
+   "previousEventId": 3,
+   "stateEnteredEventDetails": {
+    "name": "STEP05R.PRC001",
+    "input": "{}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:05.000000+00:00",
+   "type": "TaskScheduled",
+   "id": 5,
+   "previousEventId": 4,
+   "taskScheduledEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "region": "us-east-1",
+    "parameters": "{}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:06.000000+00:00",
+   "type": "TaskStarted",
+   "id": 6,
+   "previousEventId": 5,
+   "taskStartedEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:07.000000+00:00",
+   "type": "TaskSucceeded",
+   "id": 7,
+   "previousEventId": 6,
+   "taskSucceededEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "output": "{\"Payload\": {\"rc\": 0}}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:08.000000+00:00",
+   "type": "TaskStateExited",
+   "id": 8,
+   "previousEventId": 7,
+   "stateExitedEventDetails": {
+    "name": "STEP05R.PRC001",
+    "output": "{}",
+    "outputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:09.000000+00:00",
+   "type": "TaskStateEntered",
+   "id": 9,
+   "previousEventId": 8,
+   "stateEnteredEventDetails": {
+    "name": "STEP05",
+    "input": "{}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:10.000000+00:00",
+   "type": "TaskScheduled",
+   "id": 10,
+   "previousEventId": 9,
+   "taskScheduledEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "region": "us-east-1",
+    "parameters": "{}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:11.000000+00:00",
+   "type": "TaskStarted",
+   "id": 11,
+   "previousEventId": 10,
+   "taskStartedEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:12.000000+00:00",
+   "type": "TaskStateAborted",
+   "id": 12,
+   "previousEventId": 11
+  },
+  {
+   "timestamp": "2026-11-21T10:00:13.000000+00:00",
+   "type": "ExecutionAborted",
+   "id": 13,
+   "previousEventId": 12,
+   "executionAbortedEventDetails": {}
+  }
+ ]
+}
