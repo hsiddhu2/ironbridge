@@ -125,7 +125,7 @@ def test_no_tags_falls_back_and_says_why():
     assert "Runbook:        none set" in a["message"]
     tags = dict(TAGS, **{"ironbridge:owner": "unassigned", "ironbridge:owner-source": "none"})
     a = h.format_alert(detail(), f, tags, "us-east-1")
-    assert "NOTIFY=&SYSUID names whoever submits the job" in a["message"]
+    assert "Owner:          unassigned (not set. NOTIFY= has no fixed user" in a["message"]
 
 
 def test_not_redrivable_is_said():

@@ -170,7 +170,7 @@ def format_alert(detail: dict, failure: dict, tags: dict[str, str], region: str)
         "owners-file": "from owners.json",
         "owners-file-default": "default from owners.json",
         "notify": "from NOTIFY= on the JOB card",
-        "none": "NOTIFY=&SYSUID names whoever submits the job, so set an owner in owners.json",
+        "none": "not set. NOTIFY= has no fixed user, so add one to owners.json",
     }.get(source, "")
     arn = detail["executionArn"]
     redrive = detail.get("redriveStatus") or ""
