@@ -271,7 +271,7 @@ One more surprised me. I stopped the parent mid-run and redrove the aborted exec
 
 A reader asked: will you add automatic alerts and job ownership before using this for real batch work? Yes. Since v0.1.2 a failed job sends one message to an Amazon SNS topic. It names the job, the failed step, the error, the owner and the runbook.
 
-> **PENDING QA:** everything in this section passed unit and CDK tests offline. The end-to-end run on AWS, `make alert-test`, has not run yet. Delivery times and the sample from a live run will be added after QA.
+Tested on AWS on 2026-11-21 in us-east-1. `make alert-test` passed 11 of 11 checks. An abend in TRANBKP STEP05 sent one alert naming STEP05 and its owner. A redrive that failed again sent one new alert. A redrive that succeeded sent none. The dead-letter queue stayed empty. The alert reached a test SQS queue 0.88 s after the run stopped, one sample with the Lambda warm. The first cold call of the Lambda took 6.4 s.
 
 ### How it works
 
@@ -288,7 +288,7 @@ If the history or tag read fails, the alert still goes out with "unknown" in tha
 
 ### A sample alert
 
-This is the message the formatter builds for the TRANBKP abend fixture in `ironbridge/jcl/tests/fixtures/alerts/`. The subject is `ironbridge FAILED: TRANBKP at STEP05`.
+This is the alert from the live run, with the account id and execution id masked. The unit test fixture in `ironbridge/jcl/tests/fixtures/alerts/` builds the same text. The subject is `ironbridge FAILED: TRANBKP at STEP05`.
 
 ```text
 ironbridge job alert: TRANBKP FAILED
@@ -373,7 +373,7 @@ Two cases still give more than one message:
 
 ### Cost
 
-Expect cents. Each alert is one Step Functions event on the default bus, one Lambda call at 128 MB, two Step Functions read calls and one SNS publish. `make alert-test` adds one temporary SQS queue and a few hundred receive calls. No customer managed KMS key is created. [EventBridge pricing](https://aws.amazon.com/eventbridge/pricing/), [SNS pricing](https://aws.amazon.com/sns/pricing/), [Lambda pricing](https://aws.amazon.com/lambda/pricing/). The measured cost is pending QA.
+Expect cents. Each alert is one Step Functions event on the default bus, one Lambda call at 128 MB, two Step Functions read calls and one SNS publish. `make alert-test` adds one temporary SQS queue and a few hundred receive calls. No customer managed KMS key is created. [EventBridge pricing](https://aws.amazon.com/eventbridge/pricing/), [SNS pricing](https://aws.amazon.com/sns/pricing/), [Lambda pricing](https://aws.amazon.com/lambda/pricing/). The full QA run on 2026-11-21, deploy, alert test, measure and destroy, cost about $0.02, estimated from usage.
 
 ### Run the alert test
 
