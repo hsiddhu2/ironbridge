@@ -23,6 +23,10 @@ JclStack(
     build_dir=(Path(__file__).parent / ctx("buildDir")).resolve(),
     sample_jobs=list(ctx("sampleJobs")),
     folder=ctx("deployFolder"),
+    # Optional. ALERT_EMAIL=you@example.com make deploy, or -c alertEmail=... No address is
+    # kept in the repo. SNS sends a confirmation mail first.
+    alert_email=os.environ.get("ALERT_EMAIL") or ctx("alertEmail") or "",
+    alert_reserved_concurrency=int(r) if (r := ctx("alertReservedConcurrency")) else None,
     env=cdk.Environment(account=os.environ.get("CDK_DEFAULT_ACCOUNT"), region=region),
 )
 app.synth()

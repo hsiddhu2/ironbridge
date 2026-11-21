@@ -1,6 +1,6 @@
 [project]
 name = "ironbridge"
-version = "0.1.1"
+version = "0.1.2"
 description = "Mainframe artifacts in, AWS targets out. Tested on AWS CardDemo."
 readme = "README.md"
 requires-python = ">=3.12"

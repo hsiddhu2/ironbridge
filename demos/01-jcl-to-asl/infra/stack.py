@@ -1,5 +1,6 @@
 """One stack for demo 01: three sample jobs, one Control-M folder parent, the jobs it calls,
-the RC stub and a DISABLED schedule. Definitions come from `ironbridge jcl to-asl` in build/."""
+the RC stub, a DISABLED schedule and failure alerts. Definitions and owners come from
+`ironbridge jcl to-asl` in build/."""
 
 from __future__ import annotations
 
@@ -8,14 +9,24 @@ import re
 from pathlib import Path
 
 import aws_cdk as cdk
+from aws_cdk import aws_events as events
+from aws_cdk import aws_events_targets as targets
 from aws_cdk import aws_iam as iam
+from aws_cdk import aws_kms as kms
 from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_logs as logs
 from aws_cdk import aws_scheduler as scheduler
+from aws_cdk import aws_sns as sns
+from aws_cdk import aws_sns_subscriptions as subs
+from aws_cdk import aws_sqs as sqs
 from aws_cdk import aws_stepfunctions as sfn
 from constructs import Construct
 
 STUB_DIR = Path(__file__).resolve().parents[3] / "ironbridge" / "jcl" / "stub"
+ALERT_DIR = STUB_DIR.parent / "alerts"
+# Every status that ends an execution without success. SUCCEEDED, RUNNING and
+# PENDING_REDRIVE never alert, so a redrive that succeeds sends nothing.
+ALERT_STATUSES = ["FAILED", "TIMED_OUT", "ABORTED"]
 SYNC_RULE = "StepFunctionsGetEventsForStepFunctionsExecutionRule"
 LOG_SKIP = [{"id": "CKV_AWS_158", "comment": "Service default encryption, per architecture"}]
 STUB_SKIP = [
@@ -24,10 +35,36 @@ STUB_SKIP = [
     {"id": "CKV_AWS_173", "comment": "Env vars hold step names only, no secrets"},
     {"id": "CKV_AWS_115", "comment": "Reserved concurrency fails in low-quota sandboxes"},
 ]
+ALERT_SKIP = [
+    {"id": "CKV_AWS_117", "comment": "Calls public AWS APIs only. A VPC adds ENIs and cost"},
+    {"id": "CKV_AWS_173", "comment": "Env vars hold the topic ARN and log level, no secrets"},
+]
+DLQ_SSE_SKIP = {
+    "id": "CKV_AWS_27",
+    "comment": "Encrypted with SSE-SQS (SqsManagedSseEnabled). The check reads only "
+    "KmsMasterKeyId. The AWS managed SQS key cannot grant EventBridge, which writes here",
+}
+NO_RESERVED = {
+    "id": "CKV_AWS_115",
+    "comment": "Opt in with -c alertReservedConcurrency=N. Any reservation fails in sandboxes "
+    "whose account concurrency is 10",
+}
 
 
 def _skip(resource: Construct, checks: list[dict]) -> None:
     resource.node.default_child.cfn_options.metadata = {"checkov": {"skip": checks}}
+
+
+def _tag_owner(sm: sfn.StateMachine, member: str, owners: dict) -> None:
+    """Owner and runbook as tags, read by the alert Lambda and shown in the console."""
+    entry = owners.get(member)
+    if entry is None:
+        raise SystemExit(f"build/owners.json has no entry for {member}. Run `make build` again.")
+    cdk.Tags.of(sm).add("ironbridge:job", member)
+    cdk.Tags.of(sm).add("ironbridge:owner", entry["owner"])
+    cdk.Tags.of(sm).add("ironbridge:owner-source", entry["owner_source"])
+    if entry["runbook"]:
+        cdk.Tags.of(sm).add("ironbridge:runbook", entry["runbook"])
 
 
 class JclStack(cdk.Stack):
@@ -39,6 +76,8 @@ class JclStack(cdk.Stack):
         build_dir: Path,
         sample_jobs: list[str],
         folder: str,
+        alert_email: str = "",
+        alert_reserved_concurrency: int | None = None,
         **kwargs,
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
@@ -46,6 +85,10 @@ class JclStack(cdk.Stack):
         cdk.Tags.of(self).add("owner", "cloudwithharry")
         if not (build_dir / "coverage.json").exists():
             raise SystemExit(f"{build_dir} has no coverage.json. Run `make build` first.")
+        owners_path = build_dir / "owners.json"
+        if not owners_path.exists():
+            raise SystemExit(f"{build_dir} has no owners.json. Run `make build` again.")
+        owners = json.loads(owners_path.read_text())
         name = construct_id
         week = logs.RetentionDays.ONE_WEEK
         destroy = cdk.RemovalPolicy.DESTROY
@@ -113,6 +156,7 @@ class JclStack(cdk.Stack):
                 logs=log_opts,
                 removal_policy=destroy,
             )
+            _tag_owner(job_sms[member], member, owners)
             cdk.CfnOutput(self, f"Job{member}Arn", value=job_sms[member].state_machine_arn)
 
         parent_name = f"{name}-{folder}"
@@ -153,6 +197,7 @@ class JclStack(cdk.Stack):
             logs=log_opts,
             removal_policy=destroy,
         )
+        _tag_owner(parent, folder, owners)
         for m in called:
             parent.node.add_dependency(job_sms[m])
 
@@ -182,6 +227,13 @@ class JclStack(cdk.Stack):
 
         every_sm = [job_sms[m].state_machine_arn for m in jobs] + [parent.state_machine_arn]
         every_exec = [self._execution_arn(f"{name}-{m}") for m in jobs]
+        alerts = self._alerts(
+            name,
+            every_sm,
+            every_exec + [self._execution_arn(parent_name)],
+            alert_email,
+            alert_reserved_concurrency,
+        )
         operator = iam.ManagedPolicy(
             self,
             "OperatorPolicy",
@@ -208,12 +260,139 @@ class JclStack(cdk.Stack):
                     ],
                     resources=[stub.function_arn],
                 ),
+                # make alert-test: subscribe a temporary queue to the topic and read it.
+                iam.PolicyStatement(
+                    actions=["sns:Subscribe", "sns:Unsubscribe"],
+                    resources=[alerts["topic"].topic_arn],
+                ),
+                iam.PolicyStatement(
+                    actions=[
+                        "sqs:CreateQueue",
+                        "sqs:DeleteQueue",
+                        "sqs:GetQueueUrl",
+                        "sqs:GetQueueAttributes",
+                        "sqs:SetQueueAttributes",
+                        "sqs:TagQueue",
+                        "sqs:ReceiveMessage",
+                        "sqs:DeleteMessage",
+                    ],
+                    resources=[
+                        self.format_arn(service="sqs", resource=f"{name}-alert-test-*"),
+                    ],
+                ),
+                iam.PolicyStatement(
+                    actions=["sqs:GetQueueAttributes"], resources=[alerts["dlq"].queue_arn]
+                ),
             ],
         )
         cdk.CfnOutput(self, "StubFunctionName", value=stub.function_name)
         cdk.CfnOutput(self, "ParentArn", value=parent.state_machine_arn)
         cdk.CfnOutput(self, "ScheduleName", value=schedule.ref)
         cdk.CfnOutput(self, "OperatorPolicyArn", value=operator.managed_policy_arn)
+        cdk.CfnOutput(self, "AlertTopicArn", value=alerts["topic"].topic_arn)
+        cdk.CfnOutput(self, "AlertFunctionName", value=alerts["function"].function_name)
+        cdk.CfnOutput(self, "AlertDlqUrl", value=alerts["dlq"].queue_url)
+        cdk.CfnOutput(self, "AlertRuleName", value=alerts["rule"].rule_name)
+
+    def _alerts(
+        self,
+        name: str,
+        state_machines: list[str],
+        executions: list[str],
+        email: str,
+        reserved: int | None,
+    ) -> dict:
+        """EventBridge rule on failed executions of this stack's state machines, a Lambda that
+        finds the failed step, and an encrypted SNS topic. Event fields are documented at
+        https://docs.aws.amazon.com/step-functions/latest/dg/eventbridge-integration.html"""
+        destroy = cdk.RemovalPolicy.DESTROY
+        # One DLQ for both failure paths: EventBridge could not invoke the Lambda, or the
+        # Lambda failed every async attempt. SQS-managed encryption, TLS only, 14 days to look.
+        dlq = sqs.Queue(
+            self,
+            "AlertDlq",
+            queue_name=f"{name}-alerts-dlq",
+            encryption=sqs.QueueEncryption.SQS_MANAGED,
+            enforce_ssl=True,
+            retention_period=cdk.Duration.days(14),
+            removal_policy=destroy,
+        )
+        _skip(dlq, [DLQ_SSE_SKIP])
+        # The AWS managed key works here because the publisher is the Lambda role, not an AWS
+        # service. A service publishing straight to the topic would need a customer managed key:
+        # https://docs.aws.amazon.com/sns/latest/dg/sns-key-management.html
+        topic = sns.Topic(
+            self,
+            "AlertTopic",
+            topic_name=f"{name}-job-alerts",
+            display_name="ironbridge job alerts",
+            master_key=kms.Alias.from_alias_name(self, "SnsManagedKey", "alias/aws/sns"),
+            enforce_ssl=True,
+        )
+        if email:
+            topic.add_subscription(subs.EmailSubscription(email))
+
+        logs_group = logs.LogGroup(
+            self, "AlertLogs", retention=logs.RetentionDays.ONE_WEEK, removal_policy=destroy
+        )
+        _skip(logs_group, LOG_SKIP)
+        role = iam.Role(self, "AlertRole", assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"))
+        logs_group.grant_write(role)
+        role.add_to_policy(
+            iam.PolicyStatement(actions=["states:GetExecutionHistory"], resources=executions)
+        )
+        role.add_to_policy(
+            iam.PolicyStatement(actions=["states:ListTagsForResource"], resources=state_machines)
+        )
+        role.add_to_policy(
+            iam.PolicyStatement(actions=["sns:Publish"], resources=[topic.topic_arn])
+        )
+        fn = lambda_.Function(
+            self,
+            "Alert",
+            function_name=f"{name}-job-alert",
+            runtime=lambda_.Runtime.PYTHON_3_12,
+            architecture=lambda_.Architecture.ARM_64,
+            handler="handler.handler",
+            code=lambda_.Code.from_asset(str(ALERT_DIR), exclude=["__pycache__", "*.pyc"]),
+            # 128 MB: three small API calls and some string formatting. boto3 is in the runtime.
+            memory_size=128,
+            # 30 s: a cold start with boto3 plus up to 25 history pages on the longest history
+            # (25,000 events). Typical runs read one page and finish in under a second.
+            timeout=cdk.Duration.seconds(30),
+            environment={"TOPIC_ARN": topic.topic_arn, "LOG_LEVEL": "INFO"},
+            role=role,
+            log_group=logs_group,
+            logging_format=lambda_.LoggingFormat.JSON,
+            dead_letter_queue=dlq,
+            # Async retries for function errors, then the DLQ. Two is the Lambda default.
+            retry_attempts=2,
+            max_event_age=cdk.Duration.hours(2),
+            reserved_concurrent_executions=reserved,
+        )
+        _skip(fn, ALERT_SKIP + ([] if reserved else [NO_RESERVED]))
+        rule = events.Rule(
+            self,
+            "JobFailedRule",
+            rule_name=f"{name}-job-failed",
+            description="Failed, timed out or aborted executions of this stack's state machines",
+            event_pattern=events.EventPattern(
+                source=["aws.states"],
+                detail_type=["Step Functions Execution Status Change"],
+                detail={"status": ALERT_STATUSES, "stateMachineArn": state_machines},
+            ),
+        )
+        # EventBridge retries a failed invoke (throttling, service errors) for up to 2 hours,
+        # then sends the event to the DLQ. CDK adds the queue policy scoped to this rule.
+        rule.add_target(
+            targets.LambdaFunction(
+                fn,
+                dead_letter_queue=dlq,
+                retry_attempts=8,
+                max_event_age=cdk.Duration.hours(2),
+            )
+        )
+        return {"topic": topic, "function": fn, "dlq": dlq, "rule": rule}
 
     def _execution_arn(self, sm_name: str) -> str:
         return self.format_arn(

@@ -1,0 +1,384 @@
+{
+ "events": [
+  {
+   "timestamp": "2026-11-21T10:00:01.000000+00:00",
+   "type": "ExecutionStarted",
+   "id": 1,
+   "previousEventId": 0,
+   "executionStartedEventDetails": {
+    "input": "{\"simulate\": {}}",
+    "roleArn": "arn:aws:iam::111122223333:role/ironbridge-m4-JobRole"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:02.000000+00:00",
+   "type": "PassStateEntered",
+   "id": 2,
+   "previousEventId": 1,
+   "stateEnteredEventDetails": {
+    "name": "JOB",
+    "input": "{}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:03.000000+00:00",
+   "type": "PassStateExited",
+   "id": 3,
+   "previousEventId": 2,
+   "stateExitedEventDetails": {
+    "name": "JOB",
+    "output": "{}",
+    "outputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:04.000000+00:00",
+   "type": "TaskStateEntered",
+   "id": 4,
+   "previousEventId": 3,
+   "stateEnteredEventDetails": {
+    "name": "STEP05R.PRC001",
+    "input": "{}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:05.000000+00:00",
+   "type": "TaskScheduled",
+   "id": 5,
+   "previousEventId": 4,
+   "taskScheduledEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "region": "us-east-1",
+    "parameters": "{}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:06.000000+00:00",
+   "type": "TaskStarted",
+   "id": 6,
+   "previousEventId": 5,
+   "taskStartedEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:07.000000+00:00",
+   "type": "TaskSucceeded",
+   "id": 7,
+   "previousEventId": 6,
+   "taskSucceededEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "output": "{\"Payload\": {\"rc\": 0}}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:08.000000+00:00",
+   "type": "TaskStateExited",
+   "id": 8,
+   "previousEventId": 7,
+   "stateExitedEventDetails": {
+    "name": "STEP05R.PRC001",
+    "output": "{}",
+    "outputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:09.000000+00:00",
+   "type": "TaskStateEntered",
+   "id": 9,
+   "previousEventId": 8,
+   "stateEnteredEventDetails": {
+    "name": "STEP05",
+    "input": "{}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:10.000000+00:00",
+   "type": "TaskScheduled",
+   "id": 10,
+   "previousEventId": 9,
+   "taskScheduledEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "region": "us-east-1",
+    "parameters": "{}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:11.000000+00:00",
+   "type": "TaskStarted",
+   "id": 11,
+   "previousEventId": 10,
+   "taskStartedEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:12.000000+00:00",
+   "type": "TaskFailed",
+   "id": 12,
+   "previousEventId": 11,
+   "taskFailedEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "error": "Abend",
+    "cause": "{\"errorMessage\": \"S0C7 simulated in TRANBKP.STEP05\", \"errorType\": \"Abend\", \"requestId\": \"0f1e2d3c-0000-4000-8000-000000000001\", \"stackTrace\": [\"  File \\\"/var/task/handler.py\\\", line 33, in handler\\n    raise Abend(f\\\"S0C7 simulated in {key}\\\")\\n\"]}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:13.000000+00:00",
+   "type": "ExecutionFailed",
+   "id": 13,
+   "previousEventId": 12,
+   "executionFailedEventDetails": {
+    "error": "Abend",
+    "cause": "{\"errorMessage\": \"S0C7 simulated in TRANBKP.STEP05\", \"errorType\": \"Abend\", \"requestId\": \"0f1e2d3c-0000-4000-8000-000000000001\", \"stackTrace\": [\"  File \\\"/var/task/handler.py\\\", line 33, in handler\\n    raise Abend(f\\\"S0C7 simulated in {key}\\\")\\n\"]}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:14.000000+00:00",
+   "type": "ExecutionRedriven",
+   "id": 14,
+   "previousEventId": 13,
+   "executionRedrivenEventDetails": {
+    "redriveCount": 1
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:15.000000+00:00",
+   "type": "TaskScheduled",
+   "id": 15,
+   "previousEventId": 14,
+   "taskScheduledEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "region": "us-east-1",
+    "parameters": "{}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:16.000000+00:00",
+   "type": "TaskStarted",
+   "id": 16,
+   "previousEventId": 15,
+   "taskStartedEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:17.000000+00:00",
+   "type": "TaskFailed",
+   "id": 17,
+   "previousEventId": 16,
+   "taskFailedEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "error": "Abend",
+    "cause": "{\"errorMessage\": \"S0C7 simulated in TRANBKP.STEP05\", \"errorType\": \"Abend\", \"requestId\": \"0f1e2d3c-0000-4000-8000-000000000001\", \"stackTrace\": [\"  File \\\"/var/task/handler.py\\\", line 33, in handler\\n    raise Abend(f\\\"S0C7 simulated in {key}\\\")\\n\"]}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:18.000000+00:00",
+   "type": "ExecutionFailed",
+   "id": 18,
+   "previousEventId": 17,
+   "executionFailedEventDetails": {
+    "error": "Abend",
+    "cause": "{\"errorMessage\": \"S0C7 simulated in TRANBKP.STEP05\", \"errorType\": \"Abend\", \"requestId\": \"0f1e2d3c-0000-4000-8000-000000000001\", \"stackTrace\": [\"  File \\\"/var/task/handler.py\\\", line 33, in handler\\n    raise Abend(f\\\"S0C7 simulated in {key}\\\")\\n\"]}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:19.000000+00:00",
+   "type": "ExecutionRedriven",
+   "id": 19,
+   "previousEventId": 18,
+   "executionRedrivenEventDetails": {
+    "redriveCount": 2
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:20.000000+00:00",
+   "type": "TaskScheduled",
+   "id": 20,
+   "previousEventId": 19,
+   "taskScheduledEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "region": "us-east-1",
+    "parameters": "{}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:21.000000+00:00",
+   "type": "TaskStarted",
+   "id": 21,
+   "previousEventId": 20,
+   "taskStartedEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:22.000000+00:00",
+   "type": "TaskSucceeded",
+   "id": 22,
+   "previousEventId": 21,
+   "taskSucceededEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "output": "{\"Payload\": {\"rc\": 0}}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:23.000000+00:00",
+   "type": "TaskStateExited",
+   "id": 23,
+   "previousEventId": 22,
+   "stateExitedEventDetails": {
+    "name": "STEP05",
+    "output": "{}",
+    "outputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:24.000000+00:00",
+   "type": "ChoiceStateEntered",
+   "id": 24,
+   "previousEventId": 23,
+   "stateEnteredEventDetails": {
+    "name": "COND STEP10",
+    "input": "{}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:25.000000+00:00",
+   "type": "ChoiceStateExited",
+   "id": 25,
+   "previousEventId": 24,
+   "stateExitedEventDetails": {
+    "name": "COND STEP10",
+    "output": "{}",
+    "outputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:26.000000+00:00",
+   "type": "TaskStateEntered",
+   "id": 26,
+   "previousEventId": 25,
+   "stateEnteredEventDetails": {
+    "name": "STEP10",
+    "input": "{}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:27.000000+00:00",
+   "type": "TaskScheduled",
+   "id": 27,
+   "previousEventId": 26,
+   "taskScheduledEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "region": "us-east-1",
+    "parameters": "{}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:28.000000+00:00",
+   "type": "TaskStarted",
+   "id": 28,
+   "previousEventId": 27,
+   "taskStartedEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:29.000000+00:00",
+   "type": "TaskSucceeded",
+   "id": 29,
+   "previousEventId": 28,
+   "taskSucceededEventDetails": {
+    "resourceType": "lambda",
+    "resource": "invoke",
+    "output": "{\"Payload\": {\"rc\": 0}}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:30.000000+00:00",
+   "type": "TaskStateExited",
+   "id": 30,
+   "previousEventId": 29,
+   "stateExitedEventDetails": {
+    "name": "STEP10",
+    "output": "{}",
+    "outputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:31.000000+00:00",
+   "type": "PassStateEntered",
+   "id": 31,
+   "previousEventId": 30,
+   "stateEnteredEventDetails": {
+    "name": "EOJ",
+    "input": "{}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:32.000000+00:00",
+   "type": "PassStateExited",
+   "id": 32,
+   "previousEventId": 31,
+   "stateExitedEventDetails": {
+    "name": "EOJ",
+    "output": "{}",
+    "outputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:33.000000+00:00",
+   "type": "ExecutionSucceeded",
+   "id": 33,
+   "previousEventId": 32,
+   "executionSucceededEventDetails": {
+    "output": "{}"
+   }
+  }
+ ]
+}

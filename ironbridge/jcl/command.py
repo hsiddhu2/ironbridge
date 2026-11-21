@@ -5,12 +5,14 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
+import sys
 from pathlib import Path
 
 from ironbridge import __version__
 from ironbridge.core.report import Coverage
 from ironbridge.jcl.controlm import emit_folder, load_folders
 from ironbridge.jcl.emit import job_asl
+from ironbridge.jcl.owners import OwnersError, load_overrides, notify_of, resolve
 from ironbridge.jcl.parser import HARD_SUBSET, ROWS, build_job, load_procs
 
 OUTPUT_DIRS = ("jobs", "folders", "schedules")
@@ -25,6 +27,7 @@ def register(groups: argparse._SubParsersAction) -> None:
     p.add_argument("--controlm", type=Path, help="Control-M XML export")
     p.add_argument("--out", type=Path, default=Path("build"), help="output folder")
     p.add_argument("--timezone", default="UTC", help="IANA zone for Scheduler (default UTC)")
+    p.add_argument("--owners", type=Path, help="JSON file: owner and runbook per job or folder")
     p.set_defaults(func=_run)
 
 
@@ -33,9 +36,15 @@ def _dump(path: Path, data: dict) -> None:
 
 
 def to_asl(
-    jcl: Path, proc: Path | None, controlm: Path | None, out: Path, timezone: str = "UTC"
+    jcl: Path,
+    proc: Path | None,
+    controlm: Path | None,
+    out: Path,
+    timezone: str = "UTC",
+    owners: Path | None = None,
 ) -> Coverage:
     """Offline conversion. Output is byte-identical for the same input."""
+    overrides = load_overrides(owners)  # fail on a bad owners file before writing anything
     for d in OUTPUT_DIRS:
         shutil.rmtree(out / d, ignore_errors=True)
         (out / d).mkdir(parents=True)
@@ -51,10 +60,12 @@ def to_asl(
     )
     gdg_catalog: dict[str, dict] = {}
     restart = idcams_if = 0
+    names: dict[str, tuple[str, str]] = {}
     for m in members:
         job = build_job(m, procs)
         cov.items += job.constructs
         restart += len(job.restart_comments)
+        names[job.member] = ("job", notify_of(job.card))
         idcams_if += job.idcams_if
         for g in job.gdg_defs:
             gdg_catalog[g.pop("base")] = g
@@ -62,20 +73,26 @@ def to_asl(
     cov.reported = {"RESTART= comments": restart, "IDCAMS IF LASTCC/MAXCC": idcams_if}
     if controlm:
         cov.source["controlm"] = controlm.name
-        names = {m.stem.upper() for m in members}
+        members_upper = {m.stem.upper() for m in members}
         for f in load_folders(controlm):
-            asl, sched, items = emit_folder(f, names, timezone, controlm.name)
+            asl, sched, items = emit_folder(f, members_upper, timezone, controlm.name)
+            names[f.name] = ("folder", "")
             for c in items:
                 cov.add(c, "controlm")
             _dump(out / "folders" / f"{f.name}.asl.json", asl)
             _dump(out / "schedules" / f"{f.name}.json", sched)
     _dump(out / "gdg-catalog.json", dict(sorted(gdg_catalog.items())))
+    _dump(out / "owners.json", resolve(names, overrides))
     cov.write(out / "coverage.json")
     return cov
 
 
 def _run(args: argparse.Namespace) -> int:
-    cov = to_asl(args.jcl, args.proc, args.controlm, args.out, args.timezone)
+    try:
+        cov = to_asl(args.jcl, args.proc, args.controlm, args.out, args.timezone, args.owners)
+    except OwnersError as exc:
+        print(f"error: owners file {exc}", file=sys.stderr)
+        return 2
     report = cov.to_dict()
     print(f"{'construct':<24}{'total':>7}{'done':>7}{'todo':>7}")
     for row, r in report["jcl"]["rows"].items():

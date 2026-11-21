@@ -1,0 +1,177 @@
+{
+ "events": [
+  {
+   "timestamp": "2026-11-21T10:00:01.000000+00:00",
+   "type": "ExecutionStarted",
+   "id": 1,
+   "previousEventId": 0,
+   "executionStartedEventDetails": {
+    "input": "{\"gdg\": {}}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:02.000000+00:00",
+   "type": "PassStateEntered",
+   "id": 2,
+   "previousEventId": 1,
+   "stateEnteredEventDetails": {
+    "name": "FOLDER",
+    "input": "{}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:03.000000+00:00",
+   "type": "PassStateExited",
+   "id": 3,
+   "previousEventId": 2,
+   "stateExitedEventDetails": {
+    "name": "FOLDER",
+    "output": "{}",
+    "outputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:04.000000+00:00",
+   "type": "TaskStateEntered",
+   "id": 4,
+   "previousEventId": 3,
+   "stateEnteredEventDetails": {
+    "name": "CLOSEFIL",
+    "input": "{}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:05.000000+00:00",
+   "type": "TaskScheduled",
+   "id": 5,
+   "previousEventId": 4,
+   "taskScheduledEventDetails": {
+    "resourceType": "states",
+    "resource": "startExecution.sync:2",
+    "region": "us-east-1",
+    "parameters": "{}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:06.000000+00:00",
+   "type": "TaskStarted",
+   "id": 6,
+   "previousEventId": 5,
+   "taskStartedEventDetails": {
+    "resourceType": "states",
+    "resource": "startExecution.sync:2"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:07.000000+00:00",
+   "type": "TaskSubmitted",
+   "id": 7,
+   "previousEventId": 6,
+   "taskSubmittedEventDetails": {
+    "resourceType": "states",
+    "resource": "startExecution.sync:2",
+    "output": "{}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:08.000000+00:00",
+   "type": "TaskSucceeded",
+   "id": 8,
+   "previousEventId": 7,
+   "taskSucceededEventDetails": {
+    "resourceType": "states",
+    "resource": "startExecution.sync:2",
+    "output": "{}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:09.000000+00:00",
+   "type": "TaskStateExited",
+   "id": 9,
+   "previousEventId": 8,
+   "stateExitedEventDetails": {
+    "name": "CLOSEFIL",
+    "output": "{}",
+    "outputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:10.000000+00:00",
+   "type": "TaskStateEntered",
+   "id": 10,
+   "previousEventId": 9,
+   "stateEnteredEventDetails": {
+    "name": "TRANBKP",
+    "input": "{}",
+    "inputDetails": {
+     "truncated": false
+    }
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:11.000000+00:00",
+   "type": "TaskScheduled",
+   "id": 11,
+   "previousEventId": 10,
+   "taskScheduledEventDetails": {
+    "resourceType": "states",
+    "resource": "startExecution.sync:2",
+    "region": "us-east-1",
+    "parameters": "{}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:12.000000+00:00",
+   "type": "TaskStarted",
+   "id": 12,
+   "previousEventId": 11,
+   "taskStartedEventDetails": {
+    "resourceType": "states",
+    "resource": "startExecution.sync:2"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:13.000000+00:00",
+   "type": "TaskSubmitted",
+   "id": 13,
+   "previousEventId": 12,
+   "taskSubmittedEventDetails": {
+    "resourceType": "states",
+    "resource": "startExecution.sync:2",
+    "output": "{}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:14.000000+00:00",
+   "type": "TaskFailed",
+   "id": 14,
+   "previousEventId": 13,
+   "taskFailedEventDetails": {
+    "resourceType": "states",
+    "resource": "startExecution.sync:2",
+    "error": "States.TaskFailed",
+    "cause": "{\"ExecutionArn\": \"arn:aws:states:us-east-1:111122223333:execution:ironbridge-m4-TRANBKP:0a1b2c3d-0000-4000-8000-000000000002\", \"StateMachineArn\": \"arn:aws:states:us-east-1:111122223333:stateMachine:ironbridge-m4-TRANBKP\", \"Name\": \"0a1b2c3d-0000-4000-8000-000000000002\", \"Status\": \"FAILED\", \"Error\": \"Abend\", \"Cause\": \"{\\\"errorMessage\\\": \\\"S0C7 simulated in TRANBKP.STEP05\\\", \\\"errorType\\\": \\\"Abend\\\", \\\"requestId\\\": \\\"0f1e2d3c-0000-4000-8000-000000000001\\\", \\\"stackTrace\\\": [\\\"  File \\\\\\\"/var/task/handler.py\\\\\\\", line 33, in handler\\\\n    raise Abend(f\\\\\\\"S0C7 simulated in {key}\\\\\\\")\\\\n\\\"]}\", \"StartDate\": 1795254000000, \"StopDate\": 1795254002000}"
+   }
+  },
+  {
+   "timestamp": "2026-11-21T10:00:15.000000+00:00",
+   "type": "ExecutionFailed",
+   "id": 15,
+   "previousEventId": 14,
+   "executionFailedEventDetails": {
+    "error": "States.TaskFailed",
+    "cause": "{\"ExecutionArn\": \"arn:aws:states:us-east-1:111122223333:execution:ironbridge-m4-TRANBKP:0a1b2c3d-0000-4000-8000-000000000002\", \"StateMachineArn\": \"arn:aws:states:us-east-1:111122223333:stateMachine:ironbridge-m4-TRANBKP\", \"Name\": \"0a1b2c3d-0000-4000-8000-000000000002\", \"Status\": \"FAILED\", \"Error\": \"Abend\", \"Cause\": \"{\\\"errorMessage\\\": \\\"S0C7 simulated in TRANBKP.STEP05\\\", \\\"errorType\\\": \\\"Abend\\\", \\\"requestId\\\": \\\"0f1e2d3c-0000-4000-8000-000000000001\\\", \\\"stackTrace\\\": [\\\"  File \\\\\\\"/var/task/handler.py\\\\\\\", line 33, in handler\\\\n    raise Abend(f\\\\\\\"S0C7 simulated in {key}\\\\\\\")\\\\n\\\"]}\", \"StartDate\": 1795254000000, \"StopDate\": 1795254002000}"
+   }
+  }
+ ]
+}
