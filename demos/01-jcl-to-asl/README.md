@@ -2,6 +2,8 @@
 
 [`ironbridge jcl to-asl`](../../ironbridge/jcl/README.md) turned CardDemo's 38 JCL jobs into AWS Step Functions. It converts the job flow, not the programs inside the steps. It handled 497 of 511 JCL constructs automatically. That is 97.3%. It flagged the other 14 for a person to finish. The tool's output calls these flags TODO markers. The Control-M schedule converted at a lower rate, 62 of 85 constructs, or 72.9%. Program bodies run on a return-code stub in v0.1.x.
 
+Since v0.1.2, a failed, timed out or aborted job sends one alert to an Amazon SNS topic. The alert names the job, the failed step, the error, the owner and the runbook, with a console link and the redrive command. See [failure alerts and job owners](docs/deep-dive.md#failure-alerts-and-job-owners-added-in-v012).
+
 Article on AWS Builder Center: [How to Move Mainframe Batch Jobs to AWS Step Functions, Step by Step](https://builder.aws.com/content/3LlXuZLqO9UuZeiOq2vi5aJrGWi/how-to-move-mainframe-batch-jobs-to-aws-step-functions-step-by-step). The [deep dive](docs/deep-dive.md) covers the schedule, running it on your own JCL, what broke and production notes.
 
 Run every command below from this folder:
@@ -26,9 +28,15 @@ flowchart TB
   JOB -->|execution logs| CWL["Amazon CloudWatch Logs"]
   STUB -->|function logs| CWL
   OP["Operator, AWS_PROFILE=sandbox"] -->|RedriveExecution| JOB
+  JOB -->|FAILED, TIMED_OUT, ABORTED| RULE["Amazon EventBridge rule"]
+  RULE -->|event| ALERT["AWS Lambda job alert"]
+  ALERT -->|GetExecutionHistory, tags| JOB
+  ALERT -->|job, step, owner, runbook| SNS["Amazon SNS topic, KMS encrypted"]
+  RULE -.->|undeliverable| DLQ["Amazon SQS DLQ"]
+  ALERT -.->|failed 3 times| DLQ
 ```
 
-The converter runs offline and writes one JSONata state machine per job, one parent per Control-M folder, Scheduler definitions and `coverage.json`. The CDK stack deploys TRANBKP, DEFGDGD, TRANREPT and the DAILY-TransactionBackup folder parent with the jobs it calls. A Lambda stub returns the RC for each step so COND, GDG and redrive run for real.
+The converter runs offline and writes one JSONata state machine per job, one parent per Control-M folder, Scheduler definitions and `coverage.json`. The CDK stack deploys TRANBKP, DEFGDGD, TRANREPT and the DAILY-TransactionBackup folder parent with the jobs it calls. A Lambda stub returns the RC for each step so COND, GDG and redrive run for real. An EventBridge rule sends failed runs of these state machines to an alert Lambda, which finds the failed step and publishes to SNS. Each state machine carries its owner and runbook as tags, read from `owners.json`.
 
 ## Prerequisites
 
@@ -48,6 +56,14 @@ make deploy
 ```
 
 `make deploy` runs the converter into `build/`, then `cdk deploy`. Stack outputs go to `outputs.json`.
+
+To get alerts by email, pass an address. Nothing is subscribed otherwise. SNS sends a confirmation mail first.
+
+```bash
+ALERT_EMAIL=you@example.com make deploy
+```
+
+Owners and runbooks come from `owners.json` in this folder. A job not listed there gets `unassigned`, because every CardDemo JOB card says `NOTIFY=&SYSUID`, which z/OS fills with whoever submits the job.
 
 ## Run
 
@@ -92,6 +108,16 @@ It runs the four phases of [`docs/measurement-plan.md`](docs/measurement-plan.md
 | `diff` | No | State types and transition edges against the hand-written baselines |
 | `run` | Deployed | 3 jobs x 3 runs: all RC 0, a COND trip, then an abend cleared and redriven |
 
+The `run` phase abends three jobs, so it sends three alerts if you subscribed an address.
+
+To check the alerts end to end:
+
+```bash
+make alert-test
+```
+
+It subscribes a temporary SQS queue to the alert topic. It abends TRANBKP STEP05 and expects one alert with the job, step and owner. It redrives with the abend still set and expects a second alert. It clears the abend, redrives, and expects no alert. Then it checks the alert DLQ is empty. It deletes the queue and clears the abend at the end, pass or fail, and appends 11 checks to `results-alerts.csv`. It needs the `OperatorPolicyArn` policy or admin rights.
+
 Run one phase with `uv run python scripts/measure.py coverage`. The operator identity needs the `OperatorPolicyArn` policy from `outputs.json` or admin rights. The `run` phase edits the stub's `ABEND_STEPS` environment variable, so it needs `lambda:GetFunctionConfiguration` and `lambda:UpdateFunctionConfiguration`. The operator policy grants both on the stub only.
 
 Redrive reruns are read from `GetExecutionHistory`. Redrive does not emit a second `TaskStateEntered` for the failed step. It schedules the Task again. So `steps_rerun` lists each `TaskScheduled` after `ExecutionRedriven` whose state was entered before the redrive. `path_match` is true only when the path matches the baseline with that step twice and nothing else reran.
@@ -103,11 +129,11 @@ make destroy
 make leftovers
 ```
 
-`make leftovers` lists any stack, state machine, function, schedule, log group, role or policy still named after the stack. It exits 1 if it finds one.
+`make leftovers` lists any stack, state machine, function, schedule, log group, role, policy, SNS topic, SQS queue or EventBridge rule still named after the stack. It exits 1 if it finds one.
 
 ## Cost
 
-Under $1 for a full deploy, measure and destroy cycle in `us-east-1`. Charges are Step Functions Standard state transitions, Lambda requests and CloudWatch Logs ingestion. The schedule is DISABLED. Nothing is always on. The CDK bootstrap bucket stays after destroy and costs pennies.
+Under $1 for a full deploy, measure and destroy cycle in `us-east-1`. Charges are Step Functions Standard state transitions, Lambda requests and CloudWatch Logs ingestion. Alerts add cents: one Lambda call and one SNS publish per failed run, and a temporary SQS queue during `make alert-test`. The topic uses the AWS managed SNS key, so there is no KMS key fee. The schedule is DISABLED. Nothing is always on. The CDK bootstrap bucket stays after destroy and costs pennies.
 
 ## Cleanup warning
 

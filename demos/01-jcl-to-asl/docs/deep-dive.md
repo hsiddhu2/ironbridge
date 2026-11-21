@@ -267,6 +267,124 @@ These three come from the docs and the design, not from my runs:
 
 One more surprised me. I stopped the parent mid-run and redrove the aborted execution. Step Functions accepted it and it succeeded. The docs list aborted runs as redrivable, so this is the service's behavior, not something ironbridge adds.
 
+## Failure alerts and job owners, added in v0.1.2
+
+A reader asked: will you add automatic alerts and job ownership before using this for real batch work? Yes. Since v0.1.2 a failed job sends one message to an Amazon SNS topic. It names the job, the failed step, the error, the owner and the runbook.
+
+> **PENDING QA:** everything in this section passed unit and CDK tests offline. The end-to-end run on AWS, `make alert-test`, has not run yet. Delivery times and the sample from a live run will be added after QA.
+
+### How it works
+
+1. Step Functions sends an Execution Status Change event to the default EventBridge bus for every Standard workflow run. No setup is needed. [EventBridge integration](https://docs.aws.amazon.com/step-functions/latest/dg/eventbridge-integration.html)
+2. The rule `ironbridge-m4-job-failed` matches `FAILED`, `TIMED_OUT` and `ABORTED` for this stack's seven state machines only.
+3. It calls the Lambda `ironbridge-m4-job-alert`. The Lambda reads the execution history to find the failed step, and the state machine tags to find the owner.
+4. The Lambda publishes to the topic `ironbridge-m4-job-alerts`.
+
+Why a Lambda and not an input transformer straight to SNS? The event detail has `executionArn`, `stateMachineArn`, `name`, `status`, `startDate`, `stopDate`, `input`, `output`, `redriveCount`, `redriveDate`, `redriveStatus`, `redriveStatusReason`, `error` and `cause`. It has no field for the state that failed. That only lives in the execution history, from [GetExecutionHistory](https://docs.aws.amazon.com/step-functions/latest/apireference/API_GetExecutionHistory.html).
+
+The Lambda walks the history the same way the measure harness does. A redriven step gets no new `TaskStateEntered`, so it follows `previousEventId` back to the state that owns the failure. Only events after the last `ExecutionRedriven` count, so a run that fails again after a redrive reports its new failure. An aborted or timed out run reports the state that was entered and never exited.
+
+If the history or tag read fails, the alert still goes out with "unknown" in that field. Only a failed publish makes the Lambda fail. Then Lambda retries it twice, and after that the event lands in the dead-letter queue `ironbridge-m4-alerts-dlq`. A dead-letter queue, or DLQ, is a queue that holds events that could not be delivered. EventBridge uses the same queue when it cannot call the Lambda at all. It retries for up to two hours first. [EventBridge DLQ](https://docs.aws.amazon.com/eventbridge/latest/userguide/eb-rule-dlq.html), [Lambda async DLQ](https://docs.aws.amazon.com/lambda/latest/dg/invocation-async-retain-records.html)
+
+### A sample alert
+
+This is the message the formatter builds for the TRANBKP abend fixture in `ironbridge/jcl/tests/fixtures/alerts/`. The subject is `ironbridge FAILED: TRANBKP at STEP05`.
+
+```text
+ironbridge job alert: TRANBKP FAILED
+
+Job:            TRANBKP
+Failed step:    STEP05
+Return code:    none, the step abended with S0C7
+Error:          Abend
+Cause:          S0C7 simulated in TRANBKP.STEP05
+Owner:          carddemo-batch-oncall (from owners.json)
+Runbook:        https://github.com/hsiddhu2/ironbridge/blob/main/demos/01-jcl-to-asl/docs/runbook.md
+Execution:      arn:aws:states:us-east-1:<account-id>:execution:ironbridge-m4-TRANBKP:<execution-id>
+Redrive count:  0
+Console:        https://us-east-1.console.aws.amazon.com/states/home?region=us-east-1#/v2/executions/details/arn:aws:states:us-east-1:<account-id>:execution:ironbridge-m4-TRANBKP:<execution-id>
+
+Redrive: fix the cause first, then run
+  aws stepfunctions redrive-execution --execution-arn arn:aws:states:us-east-1:<account-id>:execution:ironbridge-m4-TRANBKP:<execution-id>
+Steps that already succeeded do not run again. The failed step runs again.
+```
+
+An abend has no return code. On z/OS a step either ends with a return code, which COND reads, or it abends with a code like S0C7. The alert says which. The message also carries the attributes `job`, `step`, `owner` and `status`. An SNS [subscription filter policy](https://docs.aws.amazon.com/sns/latest/dg/sns-message-filtering.html) on `owner` sends each team only its own jobs.
+
+### Where the owner comes from
+
+On the mainframe, `NOTIFY=` on the JOB card names the user who gets a message when the job ends. Every CardDemo job says `NOTIFY=&SYSUID`. `&SYSUID` is a system symbol. z/OS replaces it with the user id of whoever submitted the job. So the source has no fixed owner. On AWS the submitter is EventBridge Scheduler or a person starting a run, and that is not an owner either.
+
+ironbridge does not guess. `make build` writes `build/owners.json` with one entry per job and folder. The owner is picked in this order:
+
+| Source | Owner | `ironbridge:owner-source` tag |
+| --- | --- | --- |
+| The job's entry in `owners.json` | That value | `owners-file` |
+| `NOTIFY=` with a fixed user id, such as `NOTIFY=OPSUSR1` | That user id | `notify` |
+| The `default` entry in `owners.json` | That value | `owners-file-default` |
+| Anything else, including `NOTIFY=&SYSUID` | `unassigned` | `none` |
+
+The runbook comes from the job's entry, then the `default` entry. The demo's `owners.json` gives TRANBKP, DEFGDGD, TRANREPT and the DAILY parent an owner, and every job the demo runbook. CLOSEFIL, WAITSTEP and OPENFIL keep `unassigned`, so you can see the fallback.
+
+```json
+{
+  "default": {"runbook": "https://github.com/hsiddhu2/ironbridge/blob/main/demos/01-jcl-to-asl/docs/runbook.md"},
+  "jobs": {
+    "TRANBKP": {"owner": "carddemo-batch-oncall"}
+  }
+}
+```
+
+The stack puts these on each state machine as the tags `ironbridge:job`, `ironbridge:owner`, `ironbridge:owner-source` and `ironbridge:runbook`. You see them in the console under Tags. Tag values may only hold letters, digits, spaces and `_ . : / = + - @`, up to 256 characters. [Tag restrictions](https://docs.aws.amazon.com/step-functions/latest/dg/service-quotas.html#sfn-limits-tagging). So a runbook URL cannot carry `?`, `#` or `&`. `make build` stops with one error line if a value breaks that rule, or if `owners.json` names a job the build does not have.
+
+For your own JCL, pass your own file: `ironbridge jcl to-asl ... --owners my-owners.json`. Change an owner, then `make deploy`. Only the tags change.
+
+### How to subscribe
+
+No address is kept in the repo. Pass one at deploy time:
+
+```bash
+ALERT_EMAIL=you@example.com make deploy
+```
+
+SNS sends a confirmation mail first. Nothing arrives until you confirm. You can also subscribe a chat tool, a pager or a queue to `AlertTopicArn` from `outputs.json`.
+
+### Redrive and repeat alerts
+
+The rule never matches `SUCCEEDED`, `RUNNING` or `PENDING_REDRIVE`. So:
+
+- A run fails. One alert, redrive count 0.
+- You redrive it and it fails again. A new alert, redrive count 1.
+- You fix it and redrive. It succeeds. No alert.
+
+`make alert-test` checks all three on TRANBKP. It also checks that the DLQ is empty.
+
+Two cases still give more than one message:
+
+- A job inside the DAILY parent fails. The job alerts and the parent alerts. The parent's message names the job as its failed step and links the child run.
+- EventBridge delivers service events on a best-effort basis and may deliver them out of order. A duplicate is possible but rare. The redrive count and execution ARN in the message tell repeats apart.
+
+### Security
+
+- The topic is encrypted with the AWS managed key `alias/aws/sns`. That works because the publisher is the Lambda role. If EventBridge published straight to the topic, it would need a customer managed key with a grant for `events.amazonaws.com`. [SNS key management](https://docs.aws.amazon.com/sns/latest/dg/sns-key-management.html). The topic policy denies any request without TLS.
+- The Lambda role can read history only for this stack's executions, read tags only on this stack's state machines, publish only to this topic, and send only to its DLQ. CDK assertion tests in `infra/tests/test_stack.py` check each scope.
+- The DLQ uses SQS managed encryption. checkov 3.4.0 only looks for a KMS key on queues, so `CKV_AWS_27` is skipped with that reason inline. The AWS managed SQS key cannot grant EventBridge, which writes to this queue.
+- Reserved concurrency is off by default. Accounts with a concurrency limit of 10 reject any reservation. Turn it on with `-c alertReservedConcurrency=2` where your account allows it.
+
+### Cost
+
+Expect cents. Each alert is one Step Functions event on the default bus, one Lambda call at 128 MB, two Step Functions read calls and one SNS publish. `make alert-test` adds one temporary SQS queue and a few hundred receive calls. No customer managed KMS key is created. [EventBridge pricing](https://aws.amazon.com/eventbridge/pricing/), [SNS pricing](https://aws.amazon.com/sns/pricing/), [Lambda pricing](https://aws.amazon.com/lambda/pricing/). The measured cost is pending QA.
+
+### Run the alert test
+
+After `make deploy`:
+
+```bash
+make alert-test
+```
+
+It subscribes a temporary queue to the topic, abends TRANBKP STEP05, redrives once with the abend still set, then clears it and redrives again. It prints the first alert and 11 checks, and appends them to `results-alerts.csv`. It deletes the queue and clears the abend even when a check fails. `make leftovers` also lists any SNS topic, SQS queue or EventBridge rule named after the stack.
+
 ## Production notes
 
 **Permissions.** The stack creates an operator policy in `infra/stack.py`. Attach it to whoever runs the scripts. Validate is on `*` because it has no resource type. Start is scoped to this stack's state machines. Redrive is scoped to this stack's executions. The Lambda actions are scoped to the stub. The job and parent roles also get CloudWatch Logs delivery actions on `*`, which the [Step Functions logging docs](https://docs.aws.amazon.com/step-functions/latest/dg/cw-logs.html) require.

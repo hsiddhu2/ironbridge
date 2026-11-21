@@ -10,6 +10,8 @@ ironbridge jcl to-asl \
   --out build
 ```
 
+Add `--owners owners.json` to set an owner and runbook per job or folder. See [Owners](#owners).
+
 ## Output
 
 | Path | What it is |
@@ -19,6 +21,7 @@ ironbridge jcl to-asl \
 | `build/schedules/<FOLDER>.json` | Scheduler cron, IANA zone, state DISABLED |
 | `build/gdg-catalog.json` | GDG bases with LIMIT, SCRATCH and the defining step |
 | `build/coverage.json` | Every construct as translated or TODO, per row, with the hard subset |
+| `build/owners.json` | Owner, owner source, NOTIFY= value and runbook per job and folder |
 
 Two runs on the same input give byte-identical output.
 
@@ -47,6 +50,23 @@ Two runs on the same input give byte-identical output.
 Start a job with `{"gdg": {"<base>": n}, "simulate": {"<step>": rc}}`. Both keys are optional. The job returns `{"job", "rc", "maxcc", "gdg"}` where `gdg` is advanced for every generation the job created. A parent takes `{"gdg": {...}, "simulate": {"<MEMBER>": {...}}}`.
 
 An abend is a Lambda error. It is not caught, so the execution fails and `RedriveExecution` reruns that step only.
+
+## Owners
+
+`NOTIFY=` on the JOB card names the user z/OS tells when the job ends. `NOTIFY=&SYSUID` means whoever submitted the job, so it has no fixed value in the source. `build/owners.json` picks an owner per job in this order: the job's entry in the `--owners` file, a fixed user id in `NOTIFY=`, the file's `default` entry, then `unassigned`. The runbook comes from the job's entry, then `default`.
+
+```json
+{
+  "default": {"runbook": "https://example.com/runbooks/batch"},
+  "jobs": {"TRANBKP": {"owner": "batch-oncall"}}
+}
+```
+
+Values become Step Functions tags, so they may only hold letters, digits, spaces and `_ . : / = + - @`. A bad value, or a name the build does not have, stops the run with one `error:` line and exit code 2.
+
+## Failure alerts
+
+`alerts/handler.py` is a Lambda for an EventBridge rule on failed executions. It reads the execution history to find the failed step, reads the `ironbridge:*` tags for owner and runbook, and publishes one SNS message. It imports only the standard library and boto3. Demo 01 deploys it. Its tests use the hand-built histories in `tests/fixtures/alerts/`.
 
 ## TODO markers
 

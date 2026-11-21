@@ -11,3 +11,9 @@ flowchart TB
   JOB -->|execution logs| CWL["Amazon CloudWatch Logs"]
   STUB -->|function logs| CWL
   OP["Operator, AWS_PROFILE=sandbox"] -->|RedriveExecution| JOB
+  JOB -->|FAILED, TIMED_OUT, ABORTED| RULE["Amazon EventBridge rule"]
+  RULE -->|event| ALERT["AWS Lambda job alert"]
+  ALERT -->|GetExecutionHistory, tags| JOB
+  ALERT -->|job, step, owner, runbook| SNS["Amazon SNS topic, KMS encrypted"]
+  RULE -.->|undeliverable| DLQ["Amazon SQS DLQ"]
+  ALERT -.->|failed 3 times| DLQ
