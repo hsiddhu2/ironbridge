@@ -57,3 +57,28 @@ def test_stale_output_is_removed(tmp_path):
     (tmp_path / "jobs" / "OLD.asl.json").write_text("{}")
     run(tmp_path)
     assert not (tmp_path / "jobs" / "OLD.asl.json").exists()
+
+
+def test_owners_json_from_notify(tmp_path):
+    run(tmp_path)
+    owners = json.loads((tmp_path / "owners.json").read_text())
+    jobs = {k: v for k, v in owners.items() if v["kind"] == "job"}
+    assert len(jobs) == 38 and sum(v["kind"] == "folder" for v in owners.values()) == 5
+    # Every CardDemo JOB card says NOTIFY=&SYSUID, except the READCUST typo &SYUID.
+    assert {k for k, v in jobs.items() if v["notify"] != "&SYSUID"} == {"READCUST"}
+    assert {v["owner"] for v in owners.values()} == {"unassigned"}
+
+
+def test_owners_file_sets_owner_and_keeps_headline(tmp_path, capsys):
+    f = tmp_path / "owners.json"
+    f.write_text(json.dumps({"jobs": {"TRANBKP": {"owner": "batch-oncall"}}}))
+    out = tmp_path / "out"
+    args = ["jcl", "to-asl", "--jcl", str(FIX / "jcl"), "--proc", str(FIX / "proc")]
+    args += ["--controlm", str(FIX / "scheduler" / "CardDemo.controlm"), "--out", str(out)]
+    assert main([*args, "--owners", str(f)]) == 0
+    assert "JCL coverage 97.3% (497/511)" in capsys.readouterr().out
+    owners = json.loads((out / "owners.json").read_text())
+    assert owners["TRANBKP"]["owner"] == "batch-oncall"
+    f.write_text(json.dumps({"jobs": {"TRANBKP": {"owner": "a&b"}}}))
+    assert main([*args, "--owners", str(f)]) == 2
+    assert "error: owners file" in capsys.readouterr().err
