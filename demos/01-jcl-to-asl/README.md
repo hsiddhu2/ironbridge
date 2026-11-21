@@ -63,7 +63,7 @@ To get alerts by email, pass an address. Nothing is subscribed otherwise. SNS se
 ALERT_EMAIL=you@example.com make deploy
 ```
 
-Owners and runbooks come from `owners.json` in this folder. A job not listed there gets `unassigned`, because every CardDemo JOB card says `NOTIFY=&SYSUID`, which z/OS fills with whoever submits the job.
+Owners and runbooks come from `owners.json` in this folder. A job not listed there gets `unassigned`, because the CardDemo JOB cards say `NOTIFY=&SYSUID`, which z/OS fills with whoever submits the job.
 
 ## Run
 

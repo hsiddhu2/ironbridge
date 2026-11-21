@@ -271,7 +271,7 @@ One more surprised me. I stopped the parent mid-run and redrove the aborted exec
 
 A reader asked: will you add automatic alerts and job ownership before using this for real batch work? Yes. Since v0.1.2 a failed job sends one message to an Amazon SNS topic. It names the job, the failed step, the error, the owner and the runbook.
 
-Tested on AWS on 2026-11-21 in us-east-1. `make alert-test` passed 11 of 11 checks. An abend in TRANBKP STEP05 sent one alert naming STEP05 and its owner. A redrive that failed again sent one new alert. A redrive that succeeded sent none. The dead-letter queue stayed empty. The alert reached a test SQS queue 0.88 s after the run stopped, one sample with the Lambda warm. The first cold call of the Lambda took 6.4 s.
+Tested on AWS on 2026-11-21 in us-east-1. `make alert-test` passed 11 of 11 checks. An abend in TRANBKP STEP05 sent one alert naming STEP05 and its owner. A redrive that failed again sent one new alert. A redrive that succeeded sent none. The dead-letter queue stayed empty. The alert reached a test SQS queue 0.88 s after the run stopped, one sample with the Lambda warm. The first cold call of the Lambda took 6.36 s.
 
 ### How it works
 
@@ -288,7 +288,7 @@ If the history or tag read fails, the alert still goes out with "unknown" in tha
 
 ### A sample alert
 
-This is the alert from the live run, with the account id and execution id masked. The unit test fixture in `ironbridge/jcl/tests/fixtures/alerts/` builds the same text. The subject is `ironbridge FAILED: TRANBKP at STEP05`.
+This is the alert from the live run, with the account id and execution id masked. The unit tests in `ironbridge/jcl/tests/test_alerts.py` check the same lines against hand-built histories in `ironbridge/jcl/tests/fixtures/alerts/`. The subject is `ironbridge FAILED: TRANBKP at STEP05`.
 
 ```text
 ironbridge job alert: TRANBKP FAILED
@@ -309,11 +309,11 @@ Redrive: fix the cause first, then run
 Steps that already succeeded do not run again. The failed step runs again.
 ```
 
-An abend has no return code. On z/OS a step either ends with a return code, which COND reads, or it abends with a code like S0C7. The alert says which. The message also carries the attributes `job`, `step`, `owner` and `status`. An SNS [subscription filter policy](https://docs.aws.amazon.com/sns/latest/dg/sns-message-filtering.html) on `owner` sends each team only its own jobs.
+An abend has no return code. On z/OS a step either ends with a return code, which COND reads, or it abends with a code like S0C7. The alert says which. The message also carries the attributes `job`, `step`, `owner` and `status`. An SNS [subscription filter policy](https://docs.aws.amazon.com/sns/latest/dg/sns-message-filtering.html) on `owner` can send each team only its own jobs. The demo does not set one.
 
 ### Where the owner comes from
 
-On the mainframe, `NOTIFY=` on the JOB card names the user who gets a message when the job ends. Every CardDemo job says `NOTIFY=&SYSUID`. `&SYSUID` is a system symbol. z/OS replaces it with the user id of whoever submitted the job. So the source has no fixed owner. On AWS the submitter is EventBridge Scheduler or a person starting a run, and that is not an owner either.
+On the mainframe, `NOTIFY=` on the JOB card names the user who gets a message when the job ends. Every CardDemo job says `NOTIFY=&SYSUID`, except READCUST, which has the typo `NOTIFY=&SYUID`. `&SYSUID` is a system symbol. z/OS replaces it with the user id of whoever submitted the job. So the source has no fixed owner. On AWS the submitter is EventBridge Scheduler or a person starting a run, and that is not an owner either.
 
 ironbridge does not guess. `make build` writes `build/owners.json` with one entry per job and folder. The owner is picked in this order:
 
@@ -362,7 +362,9 @@ The rule never matches `SUCCEEDED`, `RUNNING` or `PENDING_REDRIVE`. So:
 Two cases still give more than one message:
 
 - A job inside the DAILY parent fails. The job alerts and the parent alerts. The parent's message names the job as its failed step and links the child run.
-- EventBridge delivers service events on a best-effort basis and may deliver them out of order. A duplicate is possible but rare. The redrive count and execution ARN in the message tell repeats apart.
+- Lambda can run the same event more than once. [Lambda async error handling](https://docs.aws.amazon.com/lambda/latest/dg/invocation-async-error-handling.html). The redrive count and execution ARN in the message tell repeats apart.
+
+Step Functions sends its events on a best-effort basis, and they may arrive out of order. [EventBridge integration](https://docs.aws.amazon.com/step-functions/latest/dg/eventbridge-integration.html). Best effort means that in rare cases an event is never delivered. [Delivery level](https://docs.aws.amazon.com/eventbridge/latest/ref/event-delivery-level.html). Then no alert goes out and the DLQ stays empty. For batch work that must not be missed, also list failed runs on a schedule, as in step 5 of the runbook.
 
 ### Security
 
@@ -373,7 +375,7 @@ Two cases still give more than one message:
 
 ### Cost
 
-Expect cents. Each alert is one Step Functions event on the default bus, one Lambda call at 128 MB, two Step Functions read calls and one SNS publish. `make alert-test` adds one temporary SQS queue and a few hundred receive calls. No customer managed KMS key is created. [EventBridge pricing](https://aws.amazon.com/eventbridge/pricing/), [SNS pricing](https://aws.amazon.com/sns/pricing/), [Lambda pricing](https://aws.amazon.com/lambda/pricing/). The full QA run on 2026-11-21, deploy, alert test, measure and destroy, cost about $0.02, estimated from usage.
+Expect cents. Each alert is one Step Functions event on the default bus, one Lambda call at 128 MB, two Step Functions read calls and one SNS publish. `make alert-test` adds one temporary SQS queue and a few hundred receive calls. No customer managed KMS key is created. [EventBridge pricing](https://aws.amazon.com/eventbridge/pricing/), [SNS pricing](https://aws.amazon.com/sns/pricing/), [Lambda pricing](https://aws.amazon.com/lambda/pricing/). The full QA run on 2026-11-21, deploy, alert test, measure and destroy, cost under $0.02, estimated from usage.
 
 ### Run the alert test
 

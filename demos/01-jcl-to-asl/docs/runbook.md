@@ -38,8 +38,14 @@ Redrive works for 14 days after the run stopped. After that, start a new executi
 
 ## 4. If the parent failed too
 
-A job that runs inside the DAILY-TransactionBackup parent fails the parent as well. You get two alerts: one for the job and one for the parent. The parent alert names the job as its failed step and links the child run. Fix the cause, then redrive the parent. [Redrive](https://docs.aws.amazon.com/step-functions/latest/dg/redrive-executions.html) schedules the parent's failed Task again, and that Task starts the job as a new run. The failed child run stays FAILED in its history.
+A job that runs inside the DAILY-TransactionBackup parent fails the parent as well. You get two alerts: one for the job and one for the parent. The parent alert names the job as its failed step and links the child run. Fix the cause, then redrive the parent. The [redrive docs](https://docs.aws.amazon.com/step-functions/latest/dg/redrive-executions.html) say a redriven Task is scheduled and started again. For the parent, that should start the job as a new run, and the failed child run stays FAILED. The 2026-11-21 test did not redrive a parent, so check the new child run in the console.
 
 ## 5. If no alert came
 
 Check the alert dead-letter queue, `AlertDlqUrl` in `outputs.json`. A message there means EventBridge could not call the alert Lambda or the Lambda failed three times. The Lambda logs are in the log group whose name starts with `ironbridge-m4-AlertLogs`.
+
+An empty DLQ does not prove every failure sent an alert. Step Functions sends its events on a best-effort basis, so in rare cases one never arrives. To be sure, list the failed runs of a job:
+
+```bash
+aws stepfunctions list-executions --state-machine-arn <state-machine-arn> --status-filter FAILED
+```

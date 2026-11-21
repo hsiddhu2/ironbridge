@@ -1,8 +1,9 @@
 """Job owner and runbook per state machine, written to build/owners.json.
 
 The JOB card's NOTIFY= names the TSO user who gets a message when the job ends on z/OS.
-CardDemo writes NOTIFY=&SYSUID on every job. &SYSUID is a system symbol for the user who
-submitted the job, so z/OS fills it in at submit time. There is no fixed person in the source.
+CardDemo writes NOTIFY=&SYSUID on every job but READCUST, which has the typo &SYUID. &SYSUID is
+a system symbol for the user who submitted the job, so z/OS fills it in at submit time. There
+is no fixed person in the source.
 On AWS the submitter is EventBridge Scheduler or whoever starts the execution, so ironbridge
 does not invent one. A symbol gives the owner "unassigned". A literal user id is kept as is.
 
