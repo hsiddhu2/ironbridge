@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.1.2 (Unreleased)
+## v0.1.2
 - Failure alerts for demo 01. An EventBridge rule matches FAILED, TIMED_OUT and ABORTED runs of the stack's state machines. A Lambda reads the execution history to find the failed step and publishes one message to a KMS-encrypted SNS topic with the job, failed step, return code or abend, error, cause, owner, runbook, console link and redrive command
 - A redrive that succeeds sends no alert. A redrive that fails again sends a new one with the redrive count
 - Job owners. `jcl to-asl` writes `build/owners.json` from `NOTIFY=` on each JOB card, with an optional `--owners` file for owner and runbook per job or folder. `NOTIFY=&SYSUID` is the submitter on z/OS, so it gives `unassigned` instead of a guess
