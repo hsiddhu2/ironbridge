@@ -1,0 +1,11 @@
+{
+  "default": {
+    "runbook": "https://github.com/hsiddhu2/ironbridge/blob/main/demos/01-jcl-to-asl/docs/runbook.md"
+  },
+  "jobs": {
+    "TRANBKP": {"owner": "carddemo-batch-oncall"},
+    "DEFGDGD": {"owner": "carddemo-batch-oncall"},
+    "TRANREPT": {"owner": "carddemo-batch-oncall"},
+    "DAILY-TransactionBackup": {"owner": "carddemo-batch-oncall"}
+  }
+}
